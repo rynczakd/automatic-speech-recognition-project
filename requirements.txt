@@ -1,0 +1,16 @@
+opencv-python
+jupyter
+matplotlib
+pandas
+numpy~=1.21.6
+pillow
+scipy
+tqdm
+scikit-learn
+scikit-image
+seaborn
+h5py
+ipykernel
+bokeh
+pickleshare
+soundfile~=0.12.1
