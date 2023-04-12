@@ -1,7 +1,9 @@
 import math
+import utils
 import numpy as np
 import soundfile as sf
 import scipy.signal as sig
+from spectrogramGenerator import SpectrogramGenerator
 
 
 class AudioPreparationTool:
@@ -20,7 +22,7 @@ class AudioPreparationTool:
 
             # Convert stereo to mono by selecting one channel
             if data.ndim == 2 and data.shape[1] == 2:
-                data = data[:, 1]
+                data = np.mean(data, axis=1)
 
         sample = {'data': data, 'fs': sample_rate}
 
@@ -58,14 +60,28 @@ class AudioPreparationTool:
         sample = self.read_flac()
 
         # Resample signal if sample rate is not equal to 16kHz
-        if sample['fs'] != 16000:
+        if sample['fs'] > 0 and sample['fs'] != 16000:
             sample = self.resample_signal(sample)
 
         return sample
 
+    @staticmethod
+    def compute_spectrogram(sample: dict, window_length: int, overlap: int) -> np.ndarray:
 
-if __name__ == '__main__':
-    apt = AudioPreparationTool(filepath=r'<path-to-file>')
-    x = apt.process_audio_data()
+        # Prepare variables for STFT
+        window_size = int(sample['fs'] * window_length / 1000)
+        fft_size = utils.first_power_of_2(int(sample['fs'] * window_length / 1000))
+        step_size = int(sample['fs'] * overlap / 1000)
 
+        # Create instance of SpectrogramGenerator
+        spectrogram_generator = SpectrogramGenerator(window_length=window_size,
+                                                     step_size=step_size,
+                                                     fft_size=fft_size)
+
+        spectrogram = spectrogram_generator.log_spectrogram(audio_signal=sample['data'],
+                                                            log=True,
+                                                            threshold=4,
+                                                            periodogram=False)
+
+        return spectrogram
 
