@@ -15,14 +15,7 @@ class AudioPreparationTool:
         data, sample_rate = sf.read(self.filepath)
 
         if preprocess:
-            # Remove mean value from loaded signal
-            data = data - np.mean(data)
-            # Normalize values
-            data = data / np.max(np.abs(data))
-
-            # Convert stereo to mono by selecting one channel
-            if data.ndim == 2 and data.shape[1] == 2:
-                data = np.mean(data, axis=1)
+            data = self.preprocess_audio(data)
 
         sample = {'data': data, 'fs': sample_rate}
 
@@ -55,6 +48,19 @@ class AudioPreparationTool:
 
         return sample
 
+    @staticmethod
+    def preprocess_audio(data: np.array) -> np.array:
+        # Remove mean value from loaded signal
+        data = data - np.mean(data)
+        # Normalize values
+        data = data / np.max(np.abs(data))
+
+        # Convert stereo to mono by selecting one channel
+        if data.ndim == 2 and data.shape[1] == 2:
+            data = np.mean(data, axis=1)
+
+        return data
+
     def process_audio_data(self) -> dict:
         # Read .flac file
         sample = self.read_flac()
@@ -84,4 +90,3 @@ class AudioPreparationTool:
                                                             periodogram=False)
 
         return spectrogram
-
