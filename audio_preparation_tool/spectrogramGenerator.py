@@ -1,14 +1,17 @@
 # Most of the spectrogram code is taken from: https://timsainburg.com/python-mel-compression-inversion.html
+import utils
 import numpy as np
+import scipy.ndimage
 from numpy.fft import rfft
 
 
 class SpectrogramGenerator:
 
-    def __init__(self, window_length, step_size, fft_size):
+    def __init__(self, window_length, step_size, fft_size, sample_rate):
         self.window_length = window_length
         self.step_size = step_size
         self.fft_size = fft_size
+        self.sample_rate = sample_rate
 
     @staticmethod
     def overlap(audio_signal: np.array, window_size: int, step_size: int) -> np.ndarray:
@@ -84,3 +87,37 @@ class SpectrogramGenerator:
             spectrogram[spectrogram < threshold] = threshold
 
         return spectrogram
+
+    def create_mel_filter(self, n_freq_components: int, lower_freq: int, upper_freq: int) -> (np.ndarray, np.ndarray):
+
+        # Create a filter to convolve with the spectrogram to get ot mel-scale values
+        mel_inversion_filter = utils.get_filter_bank(num_filters=n_freq_components,
+                                                     nfft=self.fft_size,
+                                                     sample_rate=self.sample_rate,
+                                                     lower_freq=lower_freq,
+                                                     upper_freq=upper_freq)
+
+        # Normalize filter
+        mel_filter = mel_inversion_filter.T / mel_inversion_filter.sum(axis=1)
+
+        return mel_filter, mel_inversion_filter
+
+    @staticmethod
+    def make_mel(spectrogram: np.ndarray, mel_filter: np.ndarray, shorten_factor: int = 1) -> np.ndarray:
+        # Compute mel spectrogram as matrix multiplication (TxS):
+        mel_spectrogram = np.transpose(mel_filter).dot(np.transpose(spectrogram))
+        mel_spectrogram = scipy.ndimage.zoom(
+            mel_spectrogram.astype("float32"), [1, 1.0 / shorten_factor]
+        ).astype("float16")
+        mel_spectrogram = mel_spectrogram[:, 1:-1]  # a little hacky but seemingly needed for clipping
+
+        return mel_spectrogram
+
+    def log_mel_spectrogram(self, spectrogram: np.ndarray) -> np.ndarray:
+        # Generate the mel filters:
+        mel_filter, mel_inversion_filter = self.create_mel_filter(n_freq_components=23,
+                                                                  lower_freq=0,
+                                                                  upper_freq=int(self.sample_rate/2))
+        mel_spectrogram = self.make_mel(spectrogram, mel_filter, shorten_factor=1)
+
+        return mel_spectrogram
