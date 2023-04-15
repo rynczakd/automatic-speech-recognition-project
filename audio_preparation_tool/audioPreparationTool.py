@@ -78,7 +78,7 @@ class AudioPreparationTool:
         return sample
 
     @staticmethod
-    def compute_spectrogram(sample: dict, window_length: int, overlap: int) -> np.ndarray:
+    def compute_spectrogram(sample: dict, window_length: int, overlap: int, log_mel: bool = True) -> np.ndarray:
 
         # Prepare variables for STFT
         window_size = int(sample['fs'] * window_length / 1000)
@@ -95,5 +95,7 @@ class AudioPreparationTool:
                                                             log=True,
                                                             threshold=4,
                                                             periodogram=False)
+        if log_mel:
+            spectrogram = spectrogram_generator.log_mel_spectrogram(spectrogram)
 
         return spectrogram
