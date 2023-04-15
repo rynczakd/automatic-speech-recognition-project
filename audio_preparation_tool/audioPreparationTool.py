@@ -9,7 +9,7 @@ from spectrogramGenerator import SpectrogramGenerator
 
 class AudioPreparationTool:
 
-    def __init__(self, filepath):
+    def __init__(self, filepath: str):
         self.filepath = filepath
 
     def read_flac(self, preprocess: bool = True) -> dict:
@@ -26,6 +26,19 @@ class AudioPreparationTool:
 
         else:
             print('The filepath {} is not valid.'.format(self.filepath))
+
+    @staticmethod
+    def preprocess_audio(data: np.array) -> np.array:
+        # Remove mean value from loaded signal
+        data = data - np.mean(data)
+        # Normalize values
+        data = data / np.max(np.abs(data))
+
+        # Convert stereo to mono by selecting one channel
+        if data.ndim == 2 and data.shape[1] == 2:
+            data = np.mean(data, axis=1)
+
+        return data
             
     @staticmethod
     def resample_signal(sample: dict, sampling_frequency: int = 16000) -> dict:
@@ -54,22 +67,9 @@ class AudioPreparationTool:
 
         return sample
 
-    @staticmethod
-    def preprocess_audio(data: np.array) -> np.array:
-        # Remove mean value from loaded signal
-        data = data - np.mean(data)
-        # Normalize values
-        data = data / np.max(np.abs(data))
-
-        # Convert stereo to mono by selecting one channel
-        if data.ndim == 2 and data.shape[1] == 2:
-            data = np.mean(data, axis=1)
-
-        return data
-
     def process_audio_data(self) -> dict:
         # Read .flac file
-        sample = self.read_flac()
+        sample = self.read_flac(preprocess=True)
 
         # Resample signal if sample rate is not equal to 16kHz
         if sample['fs'] > 0 and sample['fs'] != 16000:
