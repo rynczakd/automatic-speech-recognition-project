@@ -113,9 +113,9 @@ class SpectrogramGenerator:
 
         return mel_spectrogram
 
-    def log_mel_spectrogram(self, spectrogram: np.ndarray) -> np.ndarray:
+    def log_mel_spectrogram(self, spectrogram: np.ndarray, num_filters: int = 23) -> np.ndarray:
         # Generate the mel filters
-        mel_filter, mel_inversion_filter = self.create_mel_filter(n_freq_components=23,
+        mel_filter, mel_inversion_filter = self.create_mel_filter(n_freq_components=num_filters,
                                                                   lower_freq=0,
                                                                   upper_freq=int(self.sample_rate/2))
 
