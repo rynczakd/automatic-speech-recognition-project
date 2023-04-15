@@ -82,7 +82,8 @@ class AudioPreparationTool:
         # Create instance of SpectrogramGenerator
         spectrogram_generator = SpectrogramGenerator(window_length=window_size,
                                                      step_size=step_size,
-                                                     fft_size=fft_size)
+                                                     fft_size=fft_size,
+                                                     sample_rate=sample['fs'])
 
         spectrogram = spectrogram_generator.log_spectrogram(audio_signal=sample['data'],
                                                             log=True,
