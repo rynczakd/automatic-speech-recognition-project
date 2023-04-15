@@ -1,3 +1,4 @@
+import os
 import math
 import utils
 import numpy as np
@@ -12,15 +13,20 @@ class AudioPreparationTool:
         self.filepath = filepath
 
     def read_flac(self, preprocess: bool = True) -> dict:
-        data, sample_rate = sf.read(self.filepath)
+        # Check if the filepath is valid
+        if os.path.exists(self.filepath):
+            data, sample_rate = sf.read(self.filepath)
 
-        if preprocess:
-            data = self.preprocess_audio(data)
+            if preprocess:
+                data = self.preprocess_audio(data)
 
-        sample = {'data': data, 'fs': sample_rate}
+            sample = {'data': data, 'fs': sample_rate}
 
-        return sample
+            return sample
 
+        else:
+            print('The filepath {} is not valid.'.format(self.filepath))
+            
     @staticmethod
     def resample_signal(sample: dict, sampling_frequency: int = 16000) -> dict:
         # Extract data and sample rate from dictionary
