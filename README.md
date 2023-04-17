@@ -47,15 +47,24 @@ Analysis of non-stationary signals, including the acoustic signal of speech, inv
 
 The STFT is a commonly used signal processing technique for analyzing non-stationary signals. It provides a way to analyze the frequency content of a signal over time by computing the Fourier transform of small, overlapping sections (frames) of the signal. This allows us to examine the spectral characteristics of a signal as they evolve over time.
 
-To apply the STFT to a speech signal vector **x**, we first need to split that signal into a series of overlapping frames. It is assumed that for a speech signal the length of the analysis window should be 25 ms. By arranging each of the extracted frames side by side, we can form a speech signal matrix _X_: 
+To apply the STFT to a speech signal vector **x**, we first need to split that signal into a series of overlapping frames. It is assumed that for a speech signal the length of the analysis window should be 25 ms. The frames are usually shifted by a fixed amount (e.g. half the frame size) to ensure that they overlap. For speech analysis it is assumed that overlap should be 10 ms.  
+By arranging each of the extracted frames side by side, we can form a speech signal matrix _X_: 
 $$X \in \mathbb{R}^{k \times l}$$  
-where _k_ index is the length of the signal frame, while _l_ corresponds to the number of signal frames.
+where _k_ index is the length of the signal frame, while _l_ corresponds to the total number of signal frames that we can obtain from the speech signal (with overlap).
 
 Then, to reduce spectral leakage and improve the frequency resolution of the STFT, we typically apply a window function to each frame.  
 A commonly used window function is the Hamming window which looks as follows:  
 $$w(n) = 0.54 - 0.46 \cos\left(\frac{2 \pi n}{N-1}\right)$$  
 where _N_ corresponds to the number of samples in the signal frame.
 
+Once we have split the signal into overlapping frames, built a signal matrix _X_ and applied a window function to each frame (column of the matrix), we can compute the Fourier transform of each frame. The Fourier transform of a frame gives us a measure of the frequency content of the signal within that frame.  
+The Fourier transform is defined by the following formula:  
+$$\widetilde{X}[k] = \sum_{n=0}^{N-1} x[n]w[n] e^{-j2\pi kn/N},   k = 0, 1, ..., K$$  
+where _K_ denotes the number of discrete Fourier transform coefficients. The size of that parameter _K_ is typically chosen to be a power of 2 to allow for efficient computation of the Fourier transform.  
+
+Finally, we concatenate the Fourier transforms of each frame to obtain the STFT of the entire audio signal. The resulting STFT is a 2D matrix X̂ where each row represents a frequency band and each column represents a time window. Fourier transform is going to take us from real numbers to complex numbers:
+$$X \rightarrow \widetilde{X} \in \mathbb{C}^{K \times l}$$  
+where _K_ denotes the FFT size and _l_ corresponds to the total number of signal frames
 
 **Mel fiters**  
 **Log-mel spectrograms**  
