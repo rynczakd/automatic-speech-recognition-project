@@ -19,7 +19,6 @@ $$\mathbf{x} \in \mathbb{R}^n$$
 where _n_ can be calculated as _number of samples_ times _sampling frequency_ (number of samples per second).  
 
 One common representation of speech in the time domain is the waveform plot, which displays the amplitude values of the speech signal as a function of time. An example waveform plot for English statements is shown below.  
-![Waveform image](https://github.com/rynczakd/automatic-speech-recognition-project/blob/main/images/waveform_plot.png)
 
 **Speech signal preprocessing**  
 Preprocessing refers to a set of operations performed on a digitally recorded signal prior to its parameterization. During the preprocessing stage, a speech signal can be transformed into a set of features, the values of which can serve as a basis for describing object states in terms of speech recognition.  
@@ -44,5 +43,19 @@ Signal normalization has the effect of preserving the energy relationships betwe
 
 
 **Speech signal in the time-frequency domain**  
+Analysis of non-stationary signals, including the acoustic signal of speech, involves determining the changes in the values of harmonic amplitudes occurring over time. Observation of variation of the spectrum with respect to time is made possible by applying the Short-Time Fourier Transform (STFT).
+
+The STFT is a commonly used signal processing technique for analyzing non-stationary signals. It provides a way to analyze the frequency content of a signal over time by computing the Fourier transform of small, overlapping sections (frames) of the signal. This allows us to examine the spectral characteristics of a signal as they evolve over time.
+
+To apply the STFT to a speech signal vector **x**, we first need to split that signal into a series of overlapping frames. It is assumed that for a speech signal the length of the analysis window should be 25 ms. By arranging each of the extracted frames side by side, we can form a speech signal matrix _X_: 
+$$X \in \mathbb{R}^{k \times l}$$  
+where _k_ index is the length of the signal frame, while _l_ corresponds to the number of signal frames.
+
+Then, to reduce spectral leakage and improve the frequency resolution of the STFT, we typically apply a window function to each frame.  
+A commonly used window function is the Hamming window which looks as follows:  
+$$w(n) = 0.54 - 0.46 \cos\left(\frac{2 \pi n}{N-1}\right)$$  
+where _N_ corresponds to the number of samples in the signal frame.
+
+
 **Mel fiters**  
 **Log-mel spectrograms**  
