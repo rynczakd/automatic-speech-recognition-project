@@ -14,8 +14,7 @@ stochastic process described by random variables with known statistics. _Non-sta
 However, there is a concept of local stationarity, based on which, over sufficiently short time intervals, a speech signal can be treated as a stationary process.  
 
 In the time domain, speech signal is represented as a sequence of amplitude values over time. These amplitude values represent the variations in air pressure created by the movement of the speaker's vocal tract and are commonly referred to as the speech waveform. In simple terms, a speech signal in the time domain is considered as a long vector containing real values:
-$$\mathbf{x} \in \mathbb{R}^n$$
-
+$$\mathbf{x} \in \mathbb{R}^n$$  
 where _n_ can be calculated as _number of samples_ times _sampling frequency_ (number of samples per second).  
 
 One common representation of speech in the time domain is the waveform plot, which displays the amplitude values of the speech signal as a function of time. An example waveform plot for English statements is shown below.  
