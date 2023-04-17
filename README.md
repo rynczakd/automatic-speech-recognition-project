@@ -11,7 +11,7 @@ for its semantic recognition, and still other information for determining person
 **Speech signal in the time domain**  
 **Speech signal preprocessing**  
 Preprocessing refers to a set of operations performed on a digitally recorded signal prior to its parameterization. During the preprocessing stage, a speech signal can be transformed into a set of features, the values of which can serve as a basis for describing object states in terms of speech recognition.  
-Typical preprocessing operations include the _removing mean value from the speech signal_, _normalization of the signal_ and its _resampling_.  
+Typical preprocessing operations include the _removing mean value from the speech signal_ and _normalization of the signal_.
 
 _**Removing mean**_  
 It is assumed that the mean value of the natural speech signal in the absence of interference is equal to zero. However, due to the imperfections of the acquisition process and the finite recording length, the recorded speech signals, and especially their short fragments, may contain a mean value different from zero.
@@ -28,7 +28,8 @@ The normalization operation involves dividing the signal samples by the appropri
 After removing the mean value, the maximum momentary value 𝐴𝑗 for the j-th utterance fragment of length 𝑁 can be expressed as follows:
 $$A_j^{\max} = \max\limits_{N} \left| x(n) \right|$$  
 
-Signal normalization has the effect of preserving the energy relationships between individual phonemes of an utterance. This step also involves scaling the audio signal so that it falls within a certain range, such as -1 to 1 or 0 to 1. This can help to prevent clipping or distortion in the audio signal.
+Signal normalization has the effect of preserving the energy relationships between individual phonemes of an utterance. This step also involves scaling the audio signal so that it falls within a certain range, such as -1 to 1 or 0 to 1. This can help to prevent clipping or distortion in the audio signal.  
+
 
 **Speech signal in the time-frequency domain**  
 **Mel fiters**  
