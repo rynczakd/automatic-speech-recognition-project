@@ -3,6 +3,8 @@ This repository contains a future project related to the development of an ASR s
 
 ## Analysis of speech signal
 **Speech signal characteristics**  
+Speech is the most basic way for people to communicate. It is a sequence of complex sounds that are produced in the articulatory organs of humans.
+  
 **Speech signal in the time domain**  
 **Speech signal preprocessing**  
 **Speech signal in the time-frequency domain**  
