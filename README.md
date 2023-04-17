@@ -9,6 +9,19 @@ Speech as a method of human communication is characterized by specific requireme
 for its semantic recognition, and still other information for determining personal characteristics in voice biometrics. It is therefore necessary to choose an appropriate method of signal analysis.  
 
 **Speech signal in the time domain**  
+Speech signal by its nature is categorized as stochastic, non-stationary signal. _Stochastic_ refers to the fact that the model of this signal is a real
+stochastic process described by random variables with known statistics. _Non-stationary_ means that second-order statistics of the speech signal are time-varying.  
+However, there is a concept of local stationarity, based on which, over sufficiently short time intervals, a speech signal can be treated as a stationary process.  
+
+In the time domain, speech signal is represented as a sequence of amplitude values over time. These amplitude values represent the variations in air pressure created by the movement of the speaker's vocal tract and are commonly referred to as the speech waveform. In simple terms, a speech signal in the time domain is considered as a long vector containing real values:
+$$\mathbf{x} \in \mathbb{R}^n$$
+
+where _n_ can be calculated as _number of samples_ times _sampling frequency_ (number of samples per second).  
+
+One common representation of speech in the time domain is the waveform plot, which displays the amplitude values of the speech signal as a function of time. An example waveform plot for English statements is shown below.  
+
+
+
 **Speech signal preprocessing**  
 Preprocessing refers to a set of operations performed on a digitally recorded signal prior to its parameterization. During the preprocessing stage, a speech signal can be transformed into a set of features, the values of which can serve as a basis for describing object states in terms of speech recognition.  
 Typical preprocessing operations include the _removing mean value from the speech signal_ and _normalization of the signal_.
