@@ -10,6 +10,11 @@ for its semantic recognition, and still other information for determining person
 
 **Speech signal in the time domain**  
 **Speech signal preprocessing**  
+Preprocessing refers to a set of operations performed on a digitally recorded signal prior to its parameterization. During the preprocessing stage, a speech signal can be transformed into a set of features, the values of which can serve as a basis for describing object states in terms of speech recognition.  
+Typical pre-processing operations include the following:  
+- Removing the mean value from the signal,  
+- Normalization,  
+- Resampling.  
 
 **Speech signal in the time-frequency domain**  
 **Mel fiters**  
