@@ -7,9 +7,10 @@ Speech is the most basic way for people to communicate. It is a sequence of comp
 
 Speech as a method of human communication is characterized by specific requirements regarding the physical parameters of the signal, which can be considered in many different ways. The method of representing the signal is determined mainly by the purpose of further use - other information encoded in the speech signal is used
 for its semantic recognition, and still other information for determining personal characteristics in voice biometrics. It is therefore necessary to choose an appropriate method of signal analysis.  
-  
+
 **Speech signal in the time domain**  
 **Speech signal preprocessing**  
+
 **Speech signal in the time-frequency domain**  
 **Mel fiters**  
 **Log-mel spectrograms**  
