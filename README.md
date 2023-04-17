@@ -50,7 +50,7 @@ The STFT is a commonly used signal processing technique for analyzing non-statio
 To apply the STFT to a speech signal vector **x**, we first need to split that signal into a series of overlapping frames. It is assumed that for a speech signal the length of the analysis window should be 25 ms. The frames are usually shifted by a fixed amount (e.g. half the frame size) to ensure that they overlap. For speech analysis it is assumed that overlap should be 10 ms.  
 By arranging each of the extracted frames side by side, we can form a speech signal matrix _X_: 
 $$X \in \mathbb{R}^{k \times l}$$  
-where _k_ index is the length of the signal frame, while _l_ corresponds to the total number of signal frames that we can obtain from the speech signal (with overlap).
+where _k_ index is the length of the signal frame, while _l_ corresponds to the total number of signal frames that we can obtain from the speech signal vector (with overlap).
 
 Then, to reduce spectral leakage and improve the frequency resolution of the STFT, we typically apply a window function to each frame.  
 A commonly used window function is the Hamming window which looks as follows:  
