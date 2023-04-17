@@ -25,8 +25,8 @@ $$m = \frac{1} {N} \sum_{n=0}^{N-1} x(n)$$
 _**Normalization**_  
 The normalization operation involves dividing the signal samples by the appropriate value. In practice, the following parameters are used for normalization: _variance_, _mean absolute value_, _maximum momentary value_. In the case of the project, the last parameter was chosen.  
 
-After removing the mean value, the maximum momentary value 𝐴𝑗 for the j-th utterance fragment of length 𝑁𝑚 can be expressed as follows:
-$$A_j^{\max} = \max\limits_{n} \left| x(n) \right|$$  
+After removing the mean value, the maximum momentary value 𝐴𝑗 for the j-th utterance fragment of length 𝑁 can be expressed as follows:
+$$A_j^{\max} = \max\limits_{N} \left| x(n) \right|$$  
 
 Signal normalization has the effect of preserving the energy relationships between individual phonemes of an utterance. This step also involves scaling the audio signal so that it falls within a certain range, such as -1 to 1 or 0 to 1. This can help to prevent clipping or distortion in the audio signal.
 
