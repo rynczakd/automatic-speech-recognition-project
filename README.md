@@ -19,9 +19,7 @@ $$\mathbf{x} \in \mathbb{R}^n$$
 where _n_ can be calculated as _number of samples_ times _sampling frequency_ (number of samples per second).  
 
 One common representation of speech in the time domain is the waveform plot, which displays the amplitude values of the speech signal as a function of time. An example waveform plot for English statements is shown below.  
-
-![Waveform image](automatic-speech-recognition-project/images/waveform_plot.png)
-
+![Waveform image](https://github.com/rynczakd/automatic-speech-recognition-project/blob/main/images/waveform_plot.png)
 
 **Speech signal preprocessing**  
 Preprocessing refers to a set of operations performed on a digitally recorded signal prior to its parameterization. During the preprocessing stage, a speech signal can be transformed into a set of features, the values of which can serve as a basis for describing object states in terms of speech recognition.  
