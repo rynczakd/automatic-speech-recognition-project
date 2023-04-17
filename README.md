@@ -20,6 +20,7 @@ where _n_ can be calculated as _number of samples_ times _sampling frequency_ (n
 
 One common representation of speech in the time domain is the waveform plot, which displays the amplitude values of the speech signal as a function of time. An example waveform plot for English statements is shown below.  
 
+![Waveform image](automatic-speech-recognition-project/images/waveform_plot.png)
 
 
 **Speech signal preprocessing**  
