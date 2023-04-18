@@ -6,7 +6,7 @@ This repository contains a future project related to the development of an ASR s
 Speech is the most basic way for people to communicate. It is a sequence of complex sounds that are produced in the articulatory organs of humans. The phonetic structure of speech consists of sounds, syllables, words, phrases and sentences. The smallest part of any language is the phone, the sound of which depends not only on the way it is pronounced, but also on its placement in the word, accentuation, or the phonetic character of neighboring sounds.  
 
 Speech as a method of human communication is characterized by specific requirements regarding the physical parameters of the signal, which can be considered in many different ways. The method of representing the signal is determined mainly by the purpose of further use - other information encoded in the speech signal is used
-for its semantic recognition, and still other information for determining personal characteristics in voice biometrics systems. It is therefore necessary to choose an appropriate method of signal analysis.  
+for its semantic recognition, and still other information for determining personal characteristics in voice biometrics systems. It is therefore necessary to choose an appropriate method of signal analysis. For processing speech based on deep learning, the log-amplitude mel-spectrogram has been widely used as the feature representation. The rest of that section will describe the full process of generating such spectrograms.
 
 **Speech signal in the time domain**  
 Speech signal by its nature is categorized as stochastic, non-stationary signal. _Stochastic_ refers to the fact that the model of this signal is a real
