@@ -87,4 +87,16 @@ The human perception of sound is not linearly related to the physical properties
 
 To convert a log-magnitude spectrogram to log-magnitude mel-spectrogram, we need to apply a mel filterbank to the spectrogram. The mel filterbank essentially groups adjacent frequency bins in the spectrogram into a set of mel-frequency bins, which are spaced according to the human auditory system's perception of pitch. The mel filterbank is a set of triangular bandpass filters that are spaced evenly in the mel-frequency domain. The output of each filter is the weighted sum of the power spectrogram values in the corresponding frequency bin.  
 
+To create mel filterbank, we need to first define the parameters of the filterbank:  
+- _lower frequency_ - minimum signal frequency, in the case of speech signal analysis lower frequency is usually equal to 0 Hz,
+- _upper frequency_ - maximum signal frequency, in the case of speech signal analysis upper frequency is usually equal to (_sample rate_/2) Hz,
+- _number of filters_ - number of mel-frequency bins in the filterbank.  
+
+Then, to convert frequencies in terms of Hertz to mel-scale we can use the following formula:  
+$$M(f) = 2595 \log_{10}(1 + \frac{f}{700.0})$$  
+
+The conversion of mel-scale to frequencies follows the formula:
+$$M^-1(m)=700(10 ^ {\frac{m}{2595.0}} - 1)$$
+
+
 **Log-magnitude mel spectrograms**  
