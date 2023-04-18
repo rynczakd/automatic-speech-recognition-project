@@ -92,11 +92,25 @@ To create mel filterbank, we need to first define the parameters of the filterba
 - _upper frequency_ - maximum signal frequency, in the case of speech signal analysis upper frequency is usually equal to (_sample rate_/2) Hz,
 - _number of filters_ - number of mel-frequency bins in the filterbank.  
 
-Then, to convert frequencies in terms of Hertz to mel-scale we can use the following formula:  
+Then, we can compute the center frequencies of the mel-frequency bins. To convert frequencies in terms of Hertz to mel-scale we can use the following formula:  
 $$M(f) = 2595 \log_{10}(1 + \frac{f}{700.0})$$  
+Knowing the above equation, we can calculate the minimum and maximum mel frequencies and then divide the mel frequency range into equally spaced points:
+$$M(\operatorname{linspace}(M(\mathrm{lower\ frequency})\, M(\mathrm{upper\ frequency})\, \mathrm{number\ of\ filters}+2))$$  
+The reason for adding 2 to the number of filters in the equation above is to include the lower and upper frequency bounds in the filterbank.
 
-The conversion of mel-scale to frequencies follows the formula:
-$$M^{-1}(m) = 700(10 ^ {\frac{m}{2595}} - 1)$$
+Then, we can convert each mel frequency point back to Hertz using the inverse mel frequency formula. To convert mel-scale values to Hertz we can use following formula:
+$$M^{-1}(m) = 700(10 ^ {\frac{m}{2595}} - 1)$$  
+Our inverse mel frequency formula looks therefore as follows:
+$$M{-1}(\operatorname{linspace}(M(\mathrm{lower\ frequency})\, M(\mathrm{upper\ frequency})\, \mathrm{number\ of\ filters}+2))$$  
 
+Note that in order to convert the obtained frequencies into FFT bins, we need to multiply the obtained frequency values by the scaling factor: 
+$$\frac{nfft + 1}{sample rate}$$
+where the _(nfft + 1)_ in the numerator is added beacuse the FFT coefficient are symmetric, and the +1 ensures that the highest frequency bin is included. Then we have to round down resulting Hertz values to the nearest FFT bin index. The scaling factor is derived from the frequency resolution of the FFT mentioned earlier.   This step is necessary because the filter bank needs to be applied to the power spectrogram, which is computed using the FFT, so the mel frequency points need to be converted to FFT bin numbers.  
+
+Finally, we can compute the filterbank weights for each frequency bin. For this purpose, it is necessary to create empty filterbank matrix with (_number of filters_ x _nfft_/2) and then compute the filter weigths for each frequency bin. The filter weights are computed using a triangular function that is a piecewise linear function that varies from 0 at the left frequency to 1 at the center frequency and back to 0 at the right frequency (in its most general form a triangular function is any linear B-spline).  
+
+The filter weights are stored in the filter bank matrix _T_, where each row corresponds to one filter:
+$$T \in \mathbb{R}^{t \times n}$$  
+where _t_ denotes number of filters and _n_ corresponds to (_nfft_/2) - the filter bank matrix is typically only computed up to the nfft/2 frequency component. We can also normalize the filters by dividing each row by its sum to ensure that the sum of the weights is 1.
 
 **Log-magnitude mel spectrograms**  
