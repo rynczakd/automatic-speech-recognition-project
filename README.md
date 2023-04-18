@@ -59,13 +59,27 @@ where _N_ corresponds to the number of samples in the signal frame.
 Once we have split the signal into overlapping frames, built a signal matrix _X_ and applied a window function to each frame (column of the matrix), we can compute the Fourier transform of each frame. The Fourier transform of a frame gives us a measure of the frequency content of the signal within that frame.  
 The Fourier transform is defined by the following formula:  
 $$\widetilde{X}[k] = \sum_{n=0}^{N-1} x[n]w[n] e^{-j2\pi kn/N},   k = 0, 1, ..., K$$  
-where _K_ denotes the number of discrete Fourier transform coefficients (FFT size). The size of that parameter _K_ is typically chosen to be a power of 2 to allow for efficient computation of the Fourier transform.  
+where _K_ denotes the number of discrete Fourier transform coefficients (FFT size). The size of that parameter _K_ is typically chosen to be a power of 2 to allow for efficient computation of the Fourier transform. The resulting FFT spectrum is symmetric, and we can take only half of it to reconstruct the signal. The reason for this is that the FFT of a real-valued signal is conjugate symmetric, meaning that the values of the FFT coefficients for negative frequencies are the complex conjugates of the values for positive frequencies. This symmetry arises from the fact that the Fourier transform of a real-valued signal can be expressed as the sum of a complex exponential with a positive frequency and a complex exponential with a negative frequency.  
+The first FFT coefficient corresponds to the DC component of the signal, and each subsequent coefficient corresponds to a frequency that is a multiple of frequency resolution. The last coefficient corresponds to the Nyquist frequency, which is half of the sampling rate. The frequency resolution of the FFT is given by the sampling rate divided by the FFT size:
+$$\Delta f = \frac{f_s}{N_{FFT}}$$  
 
 Note that, it is not necessary for the frame size to be equal to the FFT size. However, it is common practice to choose the frame size such that is a multiple of the FFT size or a power of 2, to simplify the FFT computation and improve computational efficiency. In the case where the frame size is less than the FFT size it is recommended to zero pad each frame before computing its FFT to achieve a power-of-two FFT size. Zero padding involves adding zeros to the end of the frame until it reaches the desired length. Zero padding should be applied after the window function is applied to the signal. The reason for this is that applying a window function to a frame of speech signal reduces the amount of spectral leakage in the resulting FFT, which can cause unwanted artifacts in the frequency spectrum. If we apply zero padding before applying the window function, the additional zeros in the padded region will not be affected by the window function and will contribute to spectral leakage in the FFT. 
 
 Finally, we concatenate the Fourier transforms of each frame to obtain the STFT of the entire audio signal. The resulting STFT is a 2D matrix X̂ where each row represents a frequency band and each column represents a time window. Fourier transform is going to take us from real numbers to complex numbers:
 $$X \rightarrow \widetilde{X} \in \mathbb{C}^{K \times l}$$  
-where _K_ denotes the FFT size and _l_ corresponds to the total number of signal frames
+where _K_ denotes number of FFT coefficient for single frame (FFT size) and _l_ corresponds to the total number of signal frames. A visual representation of STFT is called spectrogram. A typical format for a spectrogram is a two-dimensional heat map that shows the frequency content of a signal over time. The horizontal axis represents time, while the vertical axis represents frequency. The amplitude or power of each frequency component at a given point in time is represented by the intensity or color of each point in the image.  
+
+**Log-magnitude spectrograms**  
+In speech processing, the complex-valued spectrogram is often used to represent the frequency content of a signal over time. However, in many audio preprocessing applications, the phase information is not as important as the magnitude information (this does not mean that phase information has no use, as there are publications that talk about using that information as a part of data for training deep learning models).  
+In order to perform spectral magnitude estimation, we can simply take the absolute value of each element in the STFT matrix X̂: 
+$$M = |\widetilde{X}|, \qquad M \in \mathbb{R}^{K \times l}$$
+where as before _K_ denotes FFT size and _l_ corresponds to the total number of signal frames.  
+We can also perform Periodogram estimate of the power spectrum according to the following equation:  
+$$P = \frac{1}{N}|\widetilde{X}|^2, \qquad P \in \mathbb{R}^{K \times l}$$  
+where _N_ denotes the number of samples in single frame.  
+
+Then, in order to compress the dynamic range of the spectrogram and to make it more suitable for visualizing and processing we can take the logarithm of the magnitude spectrogram:  
+$$logM = \log_{10}(M) \qquad M \in \mathbb{R}^{K \times l}$$
 
 **Mel fiters**  
 **Log-mel spectrograms**  
