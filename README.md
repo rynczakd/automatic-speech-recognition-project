@@ -76,7 +76,7 @@ $$M = |\widetilde{X}|, \qquad M \in \mathbb{R}^{K \times l}$$
 where as before _K_ denotes FFT size and _l_ corresponds to the total number of signal frames.  
 
 We can also perform Periodogram estimate of the power spectrum according to the following equation:  
-$$P = \frac{1}{N}|\widetilde{X}|^2, \qquad P \in \mathbb{R}^{K \times l}$$  
+$$P = \frac{1}{N}|\widetilde{X}|^2, \qquad P \in \mathbb{R}^{K \times l}$$
 where _N_ denotes the number of samples in single frame.  
 
 Then, in order to compress the dynamic range of the spectrogram and to make it more suitable for visualizing and processing we can take the logarithm of the magnitude spectrogram:  
