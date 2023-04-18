@@ -86,7 +86,7 @@ $$P = \frac{1}{N}|\widetilde{X}|^2, \qquad P \in \mathbb{R}^{K \times l}$$
 where _N_ denotes the number of samples in single frame.  
 
 Then, in order to compress the dynamic range of the spectrogram and to make it more suitable for visualizing and processing we can take the logarithm of the magnitude spectrogram:  
-$$logMS = \log_{10}(MS), \qquad MS \in \mathbb{R}^{K \times l}$$
+$$logMS = \log_{10}(MS), \qquad logMS \in \mathbb{R}^{K \times l}$$
 An example log-magnitude spectrogram is shown below.
 <img src="https://github.com/rynczakd/automatic-speech-recognition-project/blob/main/images/log-magnitude-spectrogram.png" width="1200">
 
