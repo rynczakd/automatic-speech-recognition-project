@@ -6,7 +6,7 @@ This repository contains a future project related to the development of an ASR s
 Speech is the most basic way for people to communicate. It is a sequence of complex sounds that are produced in the articulatory organs of humans. The phonetic structure of speech consists of sounds, syllables, words, phrases and sentences. The smallest part of any language is the phone, the sound of which depends not only on the way it is pronounced, but also on its placement in the word, accentuation, or the phonetic character of neighboring sounds.  
 
 Speech as a method of human communication is characterized by specific requirements regarding the physical parameters of the signal, which can be considered in many different ways. The method of representing the signal is determined mainly by the purpose of further use - other information encoded in the speech signal is used
-for its semantic recognition, and still other information for determining personal characteristics in voice biometrics systems. It is therefore necessary to choose an appropriate method of signal analysis. For processing speech based on deep learning, the log-amplitude mel-spectrogram has been widely used as the feature representation. The rest of that section will describe the full process of generating such spectrograms.
+for its semantic recognition, and still other information for determining personal characteristics in voice biometrics systems. It is therefore necessary to choose an appropriate method of signal analysis. For processing speech based on deep learning, the log-magnitude mel-spectrogram has been widely used as the feature representation. The rest of that section will describe the full process of generating such spectrograms.
 
 **Speech signal in the time domain**  
 Speech signal by its nature is categorized as stochastic, non-stationary signal. _Stochastic_ refers to the fact that the model of this signal is a real
@@ -70,7 +70,7 @@ $$X \rightarrow \widetilde{X} \in \mathbb{C}^{K \times l}$$
 where _K_ denotes number of FFT coefficient for single frame (FFT size) and _l_ corresponds to the total number of signal frames. A visual representation of STFT is called spectrogram. A typical format for a spectrogram is a two-dimensional heat map that shows the frequency content of a signal over time. The horizontal axis represents time, while the vertical axis represents frequency. The amplitude or power of each frequency component at a given point in time is represented by the intensity or color of each point in the image.  
 
 **Log-magnitude spectrograms**  
-In speech processing, the complex-valued spectrogram is often used to represent the frequency content of a signal over time. However, in many audio preprocessing applications, the phase information is not as important as the magnitude information (this does not mean that phase information has no use, as there are publications that talk about using that information as a part of data for training deep learning models).  
+In speech processing, the complex-valued spectrogram is often used to represent the frequency content of a signal over time. However, in many audio applications, the phase information is not as important as the magnitude information (this does not mean that phase information has no use, as there are publications that talk about using that information as a part of data for training deep learning models).  
 In order to perform spectral magnitude estimation, we can simply take the absolute value of each element in the STFT matrix X̂: 
 $$M = |\widetilde{X}|, \qquad M \in \mathbb{R}^{K \times l}$$
 where as before _K_ denotes FFT size and _l_ corresponds to the total number of signal frames.  
@@ -83,4 +83,8 @@ Then, in order to compress the dynamic range of the spectrogram and to make it m
 $$logM = \log_{10}(M), \qquad M \in \mathbb{R}^{K \times l}$$
 
 **Mel fiters**  
-**Log-mel spectrograms**  
+The human perception of sound is not linearly related to the physical properties of sound waves such as frequency. Instead, our perception is more closely related to the perceived pitch of sound, which is a nonlinear function of frequency. The Mel scale is a perceptual scale that approximates the nonlinear relationship between frequency and pitch. By transforming the frequency axis of a spectrogram to the Mel scale, we can create a new representation that is more closely related to the way humans perceive sound.  
+
+To convert a log-magnitude spectrogram to log-magnitude mel-spectrogram, we need to apply a mel filterbank to the spectrogram. The mel filterbank essentially groups adjacent frequency bins in the spectrogram into a set of mel-frequency bins, which are spaced according to the human auditory system's perception of pitch. The mel filterbank is a set of triangular bandpass filters that are spaced evenly in the mel-frequency domain. The output of each filter is the weighted sum of the power spectrogram values in the corresponding frequency bin.  
+
+**Log-magnitude mel spectrograms**  
