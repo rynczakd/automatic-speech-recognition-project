@@ -123,8 +123,8 @@ where _t_ denotes number of filters and _n_ corresponds to (_nfft_/2) - the filt
 
 **Log-magnitude mel spectrograms**  
 To convert our log-magnitude spectrogram to a log-magnitude mel spectrogram, we need to multiply the filterbank matrix _T_ by a log-magnitude spectrogram matrix_MS_. The resulting matrix will be a log-magnitude mel-spectrogram _E_:
-$$E = T \cdot MS , \qquad E \in \mathbb{R}^{t \times n}$$  
-where _t_ denotes number of filters and _n_ corresponds to (_nfft_/2). The values in a log-magnitude mel spectrogram represent the amount of energy of the audio signal at different frequency bands over time.  
+$$E = T \cdot MS , \qquad E \in \mathbb{R}^{t \times l}$$  
+where _t_ denotes number of filters and and _l_ corresponds to the total number of signal frames. The values in a log-magnitude mel spectrogram represent the amount of energy of the audio signal at different frequency bands over time.  
 
 An example log-magnitude mel spectrogram is shown below.
 <img src="https://github.com/rynczakd/automatic-speech-recognition-project/blob/main/images/log-magnitude-mel-spectrogram.png" width="1200">  
