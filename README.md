@@ -59,7 +59,7 @@ where _N_ corresponds to the number of samples in the signal frame.
 Once we have split the signal into overlapping frames, built a signal matrix _X_ and applied a window function to each frame (column of the matrix), we can compute the Fourier transform of each frame. The Fourier transform of a frame gives us a measure of the frequency content of the signal within that frame.  
 The Fourier transform is defined by the following formula:  
 $$\widetilde{X}[k] = \sum_{n=0}^{N-1} x[n]w[n] e^{-j2\pi kn/N},   k = 0, 1, ..., K$$  
-where _K_ denotes the number of discrete Fourier transform coefficients (FFT size). The size of that parameter _K_ is typically chosen to be a power of 2 to allow for efficient computation of the Fourier transform. The resulting FFT spectrum is symmetric, and we can take only half of it to reconstruct the signal. The reason for this is that the FFT of a real-valued signal is conjugate symmetric, meaning that the values of the FFT coefficients for negative frequencies are the complex conjugates of the values for positive frequencies. This symmetry arises from the fact that the Fourier transform of a real-valued signal can be expressed as the sum of a complex exponential with a positive frequency and a complex exponential with a negative frequency.  
+where _K_ denotes the number of discrete Fourier transform coefficients (FFT size). The size of that parameter _K_ is typically chosen to be a power of 2 to allow for efficient computation of the Fourier transform. The resulting FFT spectrum is symmetric, and we can take only half of it to reconstruct the signal.  
 The first FFT coefficient corresponds to the DC component of the signal, and each subsequent coefficient corresponds to a frequency that is a multiple of frequency resolution. The last coefficient corresponds to the Nyquist frequency, which is half of the sampling rate. The frequency resolution of the FFT is given by the sampling rate divided by the FFT size:
 $$\Delta f = \frac{f_s}{N_{FFT}}$$  
 
@@ -72,7 +72,7 @@ where _K_ denotes number of FFT coefficient for single frame (FFT size) and _l_ 
 **Log-magnitude spectrograms**  
 In speech processing, the complex-valued spectrogram is often used to represent the frequency content of a signal over time. However, in many audio applications, the phase information is not as important as the magnitude information (this does not mean that phase information has no use, as there are publications that talk about using that information as a part of data for training deep learning models).  
 In order to perform spectral magnitude estimation, we can simply take the absolute value of each element in the STFT matrix X̂: 
-$$M = |\widetilde{X}|, \qquad M \in \mathbb{R}^{K \times l}$$
+$$MS = |\widetilde{X}|, \qquad MS \in \mathbb{R}^{K \times l}$$
 where as before _K_ denotes FFT size and _l_ corresponds to the total number of signal frames.  
 
 We can also perform Periodogram estimate of the power spectrum according to the following equation:  
@@ -80,7 +80,7 @@ $$P = \frac{1}{N}|\widetilde{X}|^2, \qquad P \in \mathbb{R}^{K \times l}$$
 where _N_ denotes the number of samples in single frame.  
 
 Then, in order to compress the dynamic range of the spectrogram and to make it more suitable for visualizing and processing we can take the logarithm of the magnitude spectrogram:  
-$$logM = \log_{10}(M), \qquad M \in \mathbb{R}^{K \times l}$$
+$$logMS = \log_{10}(MS), \qquad MS \in \mathbb{R}^{K \times l}$$
 
 **Mel fiters**  
 The human perception of sound is not linearly related to the physical properties of sound waves such as frequency. Instead, our perception is more closely related to the perceived pitch of sound, which is a nonlinear function of frequency. The Mel scale is a perceptual scale that approximates the nonlinear relationship between frequency and pitch. By transforming the frequency axis of a spectrogram to the Mel scale, we can create a new representation that is more closely related to the way humans perceive sound.  
@@ -109,8 +109,14 @@ where the _(nfft + 1)_ in the numerator is added beacuse the FFT coefficient are
 
 Finally, we can compute the filterbank weights for each frequency bin. For this purpose, it is necessary to create empty filterbank matrix with (_number of filters_ x _nfft_/2) and then compute the filter weigths for each frequency bin. The filter weights are computed using a triangular function that is a piecewise linear function that varies from 0 at the left frequency to 1 at the center frequency and back to 0 at the right frequency (in its most general form a triangular function is any linear B-spline).  
 
-The filter weights are stored in the filter bank matrix _T_, where each row corresponds to one filter:
+The filter weights are stored in the filterbank matrix _T_, where each row corresponds to one filter:
 $$T \in \mathbb{R}^{t \times n}$$  
 where _t_ denotes number of filters and _n_ corresponds to (_nfft_/2) - the filter bank matrix is typically only computed up to the nfft/2 frequency component. We can also normalize the filters by dividing each row by its sum to ensure that the sum of the weights is 1.
 
 **Log-magnitude mel spectrograms**  
+To convert our log-magnitude spectrogram to a log-magnitude mel spectrogram, we need to multiply the filterbank matrix _T_ by a log-magnitude spectrogram matrix_MS_. The resulting matrix will be a log-magnitude mel-spectrogram _E_:
+$$E = T \cdot MS , \qquad E \in \mathbb{R}^{t \times n}$$  
+where _t_ denotes number of filters and _n_ corresponds to (_nfft_/2). The values in a log-magnitude mel spectrogram represent the amount of energy of the audio signal at different frequency bands over time.
+
+**_Note that for all calculations, the spectrogram matrix frequencies are limited to nfft/2_.**
+  
