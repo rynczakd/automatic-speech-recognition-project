@@ -96,7 +96,7 @@ Then, to convert frequencies in terms of Hertz to mel-scale we can use the follo
 $$M(f) = 2595 \log_{10}(1 + \frac{f}{700.0})$$  
 
 The conversion of mel-scale to frequencies follows the formula:
-$$M^-1(m)=700(10 ^ {\frac{m}{2595.0}} - 1)$$
+$$M^-1(m)=700(10 ^ {\frac{m}{2595}} - 1)$$
 
 
 **Log-magnitude mel spectrograms**  
