@@ -79,7 +79,7 @@ $$P = \frac{1}{N}|\widetilde{X}|^2, \qquad P \in \mathbb{R}^{K \times l}$$
 where _N_ denotes the number of samples in single frame.  
 
 Then, in order to compress the dynamic range of the spectrogram and to make it more suitable for visualizing and processing we can take the logarithm of the magnitude spectrogram:  
-$$logM = \log_{10}(M) \qquad M \in \mathbb{R}^{K \times l}$$
+$$logM = \log_{10}(M), \qquad M \in \mathbb{R}^{K \times l}$$
 
 **Mel fiters**  
 **Log-mel spectrograms**  
