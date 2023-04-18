@@ -19,6 +19,8 @@ where _N_ denotes a total signal length (total number of samples) and can be cal
 
 One common representation of speech in the time domain is the waveform plot, which displays the amplitude values of the speech signal as a function of time. An example waveform plot for the sentence is shown below.
 
+<img src="https://github.com/rynczakd/automatic-speech-recognition-project/blob/main/images/waveform_plot.png" width="600">
+
 **Speech signal preprocessing**  
 Preprocessing refers to a set of operations performed on a recorded signal prior to its parameterization. During the preprocessing stage, a speech signal can be transformed into a set of features, the values of which can serve as a basis for describing object states in terms of speech recognition.  
 Typical preprocessing operations include the _removing mean_ value from the speech signal and _normalization_ of the signal.
@@ -38,7 +40,9 @@ The normalization operation involves dividing the signal samples by the appropri
 After removing the mean value, the maximum momentary value 𝐴𝑗 for the j-th utterance fragment of length 𝑁 can be expressed as follows:
 $$A_j^{\max} = \max\limits_{N} \left| x(n) \right|$$  
 
-Signal normalization has the effect of preserving the energy relationships between individual phonemes of an utterance. This step also involves scaling the audio signal so that it falls within a certain range, such as -1 to 1 or 0 to 1. This can help to prevent clipping or distortion in the audio signal.  
+Signal normalization has the effect of preserving the energy relationships between individual phonemes of an utterance. This step also involves scaling the audio signal so that it falls within a certain range, such as -1 to 1 or 0 to 1. This can help to prevent clipping or distortion in the audio signal.
+
+<img src="https://github.com/rynczakd/automatic-speech-recognition-project/blob/main/images/waveforms_comparison.png" width="700">
 
 
 **Speech signal in the time-frequency domain**  
@@ -82,6 +86,8 @@ where _N_ denotes the number of samples in single frame.
 Then, in order to compress the dynamic range of the spectrogram and to make it more suitable for visualizing and processing we can take the logarithm of the magnitude spectrogram:  
 $$logMS = \log_{10}(MS), \qquad MS \in \mathbb{R}^{K \times l}$$
 
+<img src="https://github.com/rynczakd/automatic-speech-recognition-project/blob/main/images/log-magnitude-spectrogram.png" width="1200">
+
 **Mel fiters**  
 The human perception of sound is not linearly related to the physical properties of sound waves such as frequency. Instead, our perception is more closely related to the perceived pitch of sound, which is a nonlinear function of frequency. The Mel scale is a perceptual scale that approximates the nonlinear relationship between frequency and pitch. By transforming the frequency axis of a spectrogram to the Mel scale, we can create a new representation that is more closely related to the way humans perceive sound.  
 
@@ -117,6 +123,10 @@ where _t_ denotes number of filters and _n_ corresponds to (_nfft_/2) - the filt
 To convert our log-magnitude spectrogram to a log-magnitude mel spectrogram, we need to multiply the filterbank matrix _T_ by a log-magnitude spectrogram matrix_MS_. The resulting matrix will be a log-magnitude mel-spectrogram _E_:
 $$E = T \cdot MS , \qquad E \in \mathbb{R}^{t \times n}$$  
 where _t_ denotes number of filters and _n_ corresponds to (_nfft_/2). The values in a log-magnitude mel spectrogram represent the amount of energy of the audio signal at different frequency bands over time.
+
+<img src="https://github.com/rynczakd/automatic-speech-recognition-project/blob/main/images/log-magnitude-mel-spectrogram.png" width="1200">
+<img src="https://github.com/rynczakd/automatic-speech-recognition-project/blob/main/images/waveform-with-log-magnitude-mel-spec.png" width="600">
+
 
 **_Note that for all calculations, the spectrogram matrix frequencies are limited to nfft/2_.**
   
