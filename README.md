@@ -42,6 +42,8 @@ $$A_j^{\max} = \max\limits_{N} \left| x(n) \right|$$
 
 Signal normalization has the effect of preserving the energy relationships between individual phonemes of an utterance. This step also involves scaling the audio signal so that it falls within a certain range, such as -1 to 1 or 0 to 1. This can help to prevent clipping or distortion in the audio signal.
 
+Example waveforms of the speech signal before (top graph) and after preprocessing (bottom graph) are shown below.
+
 <img src="https://github.com/rynczakd/automatic-speech-recognition-project/blob/main/images/waveforms_comparison.png" width="700">
 
 
@@ -85,7 +87,7 @@ where _N_ denotes the number of samples in single frame.
 
 Then, in order to compress the dynamic range of the spectrogram and to make it more suitable for visualizing and processing we can take the logarithm of the magnitude spectrogram:  
 $$logMS = \log_{10}(MS), \qquad MS \in \mathbb{R}^{K \times l}$$
-
+An example log-magnitude spectrogram is shown below.
 <img src="https://github.com/rynczakd/automatic-speech-recognition-project/blob/main/images/log-magnitude-spectrogram.png" width="1200">
 
 **Mel fiters**  
@@ -122,11 +124,13 @@ where _t_ denotes number of filters and _n_ corresponds to (_nfft_/2) - the filt
 **Log-magnitude mel spectrograms**  
 To convert our log-magnitude spectrogram to a log-magnitude mel spectrogram, we need to multiply the filterbank matrix _T_ by a log-magnitude spectrogram matrix_MS_. The resulting matrix will be a log-magnitude mel-spectrogram _E_:
 $$E = T \cdot MS , \qquad E \in \mathbb{R}^{t \times n}$$  
-where _t_ denotes number of filters and _n_ corresponds to (_nfft_/2). The values in a log-magnitude mel spectrogram represent the amount of energy of the audio signal at different frequency bands over time.
+where _t_ denotes number of filters and _n_ corresponds to (_nfft_/2). The values in a log-magnitude mel spectrogram represent the amount of energy of the audio signal at different frequency bands over time.  
 
-<img src="https://github.com/rynczakd/automatic-speech-recognition-project/blob/main/images/log-magnitude-mel-spectrogram.png" width="1200">
-<img src="https://github.com/rynczakd/automatic-speech-recognition-project/blob/main/images/waveform-with-log-magnitude-mel-spec.png" width="600">
+An example log-magnitude mel spectrogram is shown below.
+<img src="https://github.com/rynczakd/automatic-speech-recognition-project/blob/main/images/log-magnitude-mel-spectrogram.png" width="1200">  
 
+A summary of the waveform and log-magnitude mel spectrogram is shown in the image below.
+<img src="https://github.com/rynczakd/automatic-speech-recognition-project/blob/main/images/waveform-with-log-magnitude-mel-spec.png" width="600">  
 
 **_Note that for all calculations, the spectrogram matrix frequencies are limited to nfft/2_.**
   
