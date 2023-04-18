@@ -74,6 +74,7 @@ In speech processing, the complex-valued spectrogram is often used to represent 
 In order to perform spectral magnitude estimation, we can simply take the absolute value of each element in the STFT matrix X̂: 
 $$M = |\widetilde{X}|, \qquad M \in \mathbb{R}^{K \times l}$$
 where as before _K_ denotes FFT size and _l_ corresponds to the total number of signal frames.  
+
 We can also perform Periodogram estimate of the power spectrum according to the following equation:  
 $$P = \frac{1}{N}|\widetilde{X}|^2, \qquad P \in \mathbb{R}^{K \times l}$$  
 where _N_ denotes the number of samples in single frame.  
