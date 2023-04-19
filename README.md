@@ -109,7 +109,7 @@ The reason for adding 2 to the number of filters in the equation above is to inc
 Then, we can convert each mel frequency point back to Hertz using the inverse mel frequency formula. To convert mel-scale values to Hertz we can use following formula:
 $$M^{-1}(m) = 700(10 ^ {\frac{m}{2595}} - 1)$$  
 Our inverse mel frequency formula looks therefore as follows:
-$$M{-1}(\operatorname{linspace}(M(\mathrm{lower\ frequency})\, M(\mathrm{upper\ frequency})\, \mathrm{number\ of\ filters}+2))$$  
+$$M^{-1}(\operatorname{linspace}(M(\mathrm{lower\ frequency})\, M(\mathrm{upper\ frequency})\, \mathrm{number\ of\ filters}+2))$$  
 
 Note that in order to convert the obtained frequencies into FFT bins, we need to multiply the obtained frequency values by the scaling factor: 
 $$\frac{nfft + 1}{sample rate}$$
