@@ -41,4 +41,9 @@ class CtcTokenizer:
         idx_to_char = {idx: char for idx, char in enumerate(vocabulary)}
 
         return char_to_idx, idx_to_char
+
+    @staticmethod
+    def tokenizer(vocabulary: dict, sentence: string) -> list:
+        tokens = [vocabulary[char] for char in sentence]
+        return tokens
     
