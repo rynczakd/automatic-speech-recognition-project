@@ -1,6 +1,7 @@
 # utils.py
 import math
 import numpy as np
+from PIL import Image
 
 
 # Calculate first power of 2
@@ -49,3 +50,15 @@ def get_filter_bank(num_filters: int = 23, nfft: int = 512, sample_rate: int = 1
             filter_bank[j, i] = (bin_points[j + 2] - i) / (bin_points[j + 2] - bin_points[j + 1])
 
     return filter_bank
+
+
+def spec2jpg(spectrogram: np.ndarray):
+    # Scale data to obtain values from range (0, 1)
+    spectrogram = (spectrogram - np.min(spectrogram)) / \
+                            (np.max(spectrogram) - np.min(spectrogram))
+    # Convert np.ndarray into JPG image - it allows us to reduce size of our data
+    # Scale image to obtain values from range (0, 255) and change data type to uint8
+    spectrogram_img = Image.fromarray((spectrogram * 255).astype(np.uint8))
+
+    return spectrogram_img
+
