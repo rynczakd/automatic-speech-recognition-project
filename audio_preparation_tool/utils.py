@@ -56,7 +56,7 @@ def spec2img(spectrogram: np.ndarray) -> Image.Image:
     # Scale data to obtain values from range (0, 1)
     spectrogram = (spectrogram - np.min(spectrogram)) / \
                             (np.max(spectrogram) - np.min(spectrogram))
-    # Convert np.ndarray into JPG image - it allows us to reduce size of our data
+    # Convert np.ndarray into IMG - it allows us to reduce size of our data
     # Scale image to obtain values from range (0, 255) and change data type to uint8
     spectrogram_img = Image.fromarray((spectrogram * 255).astype(np.uint8))
 
@@ -64,7 +64,7 @@ def spec2img(spectrogram: np.ndarray) -> Image.Image:
 
 
 def img2spec(spectrogram_image: Image.Image) -> np.ndarray:
-    # Convert JPG to np.ndarray
+    # Convert IMG to np.ndarray
     spectrogram = np.array(spectrogram_image)
     # Add third dimension for CNN
     spectrogram = np.atleast_3d(spectrogram)
@@ -72,3 +72,4 @@ def img2spec(spectrogram_image: Image.Image) -> np.ndarray:
     # Scale values to range (0, 1)
     spectrogram = spectrogram / 255
     return spectrogram
+
