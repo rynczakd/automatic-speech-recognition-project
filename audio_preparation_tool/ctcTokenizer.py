@@ -3,9 +3,8 @@ import string
 
 
 class CtcTokenizer:
-    def __init__(self, root_dir, vocabulary_dir):
+    def __init__(self, root_dir):
         self.root_dir = root_dir
-        self.vocabulary_dir = vocabulary_dir
 
     def prepare_vocabulary(self, remove_punctuation: bool = False) -> (dict, dict):
         # Prepare empty list for .trans.txt files
