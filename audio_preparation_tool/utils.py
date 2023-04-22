@@ -52,7 +52,7 @@ def get_filter_bank(num_filters: int = 23, nfft: int = 512, sample_rate: int = 1
     return filter_bank
 
 
-def spec2jpg(spectrogram: np.ndarray) -> Image.Image:
+def spec2img(spectrogram: np.ndarray) -> Image.Image:
     # Scale data to obtain values from range (0, 1)
     spectrogram = (spectrogram - np.min(spectrogram)) / \
                             (np.max(spectrogram) - np.min(spectrogram))
@@ -63,7 +63,7 @@ def spec2jpg(spectrogram: np.ndarray) -> Image.Image:
     return spectrogram_img
 
 
-def jpg2spec(spectrogram_image: Image.Image) -> np.ndarray:
+def img2spec(spectrogram_image: Image.Image) -> np.ndarray:
     # Convert JPG to np.ndarray
     spectrogram = np.array(spectrogram_image)
     # Add third dimension for CNN
