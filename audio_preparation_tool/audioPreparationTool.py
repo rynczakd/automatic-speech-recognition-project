@@ -4,18 +4,21 @@ import utils
 import numpy as np
 import soundfile as sf
 import scipy.signal as sig
+from ctcTokenizer import CtcTokenizer
 from spectrogramGenerator import SpectrogramGenerator
 
 
 class AudioPreparationTool:
 
-    def __init__(self, filepath: str):
-        self.filepath = filepath
+    def __init__(self, root_dir: str, database_dir: str, labels_dir: str):
+        self.root_dir = root_dir
+        self.database_dir = database_dir
+        self.labels_dir = labels_dir
 
-    def read_flac(self, preprocess: bool = True) -> dict:
+    def read_flac(self, filepath: str, preprocess: bool = True) -> dict:
         # Check if the filepath is valid
-        if os.path.exists(self.filepath):
-            data, sample_rate = sf.read(self.filepath)
+        if os.path.exists(filepath):
+            data, sample_rate = sf.read(filepath)
 
             if preprocess:
                 data = self.preprocess_audio(data)
@@ -25,7 +28,7 @@ class AudioPreparationTool:
             return sample
 
         else:
-            print('The filepath {} is not valid.'.format(self.filepath))
+            print('The filepath {} is not valid.'.format(filepath))
 
     @staticmethod
     def preprocess_audio(data: np.array) -> np.array:
@@ -67,9 +70,10 @@ class AudioPreparationTool:
 
         return sample
 
-    def process_audio_data(self) -> dict:
+    def process_audio_data(self, filepath: str) -> dict:
         # Read .flac file
-        sample = self.read_flac(preprocess=True)
+        sample = self.read_flac(filepath=filepath,
+                                preprocess=True)
 
         # Resample signal if sample rate is not equal to 16kHz
         if sample['fs'] > 0 and sample['fs'] != 16000:
@@ -101,3 +105,45 @@ class AudioPreparationTool:
                                                                     num_filters=n_freq_components)
 
         return spectrogram
+
+    def generate_database(self):
+        # Prepare vocabulary for CTC loss function
+        ctc_tokenizer = CtcTokenizer(root_dir=self.root_dir)
+        vocabulary, _ = ctc_tokenizer.prepare_vocabulary(remove_punctuation=False)
+
+        # Prepare empty dictionary for spectrogram and label pairs
+        dataset_dictionary = dict()
+        for sub_dir, _, files in os.walk(self.root_dir):
+            for file in files:
+                if file.endswith(".trans.txt"):
+                    with open(os.path.join(sub_dir, file), "r") as f:
+                        line = f.readline()
+                        while line:
+                            # PROCESS AUDIO...
+                            filename = line.split(" ", 1)[0]  # Get filename from .trans.txt file
+                            filepath = os.path.join(sub_dir, filename) + ".flac"
+
+                            # Load and preprocess .flac file
+                            data = self.process_audio_data(filepath=filepath)
+                            # Generate spectrogram
+                            log_mel_spectrogram = self.compute_spectrogram(sample=data,
+                                                                           window_length=25,
+                                                                           overlap=10,
+                                                                           log_mel=True,
+                                                                           n_freq_components=23)
+                            log_mel_image = utils.spec2img(log_mel_spectrogram)
+                            # log_mel_image.save("<filepath>.png>")
+
+                            # PROCESS TRANSCRIPTIONS...
+                            transcript = line.split(" ", 1)[1]  # Get transcription from .trans.txt file
+                            transcript = transcript.strip().lower().replace("\n", "")
+                            token = ctc_tokenizer.tokenizer(vocabulary=vocabulary,
+                                                            sentence=transcript)
+
+                            line = f.readline()
+
+                            # TODO:
+                            #  - Prepare saving spectrograms to PNG format images in the given directory,
+                            #  - Add storing spectrograms and corresponding tokens in the dictionary,
+                            #  - Convert dictionary into pandas dataframe
+                            #  - Convert pandas dataframe to feather type
