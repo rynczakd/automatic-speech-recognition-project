@@ -1,7 +1,9 @@
 import os
 import math
 import utils
+import feather
 import numpy as np
+import pandas as pd
 import soundfile as sf
 import scipy.signal as sig
 from ctcTokenizer import CtcTokenizer
@@ -14,6 +16,12 @@ class AudioPreparationTool:
         self.root_dir = root_dir
         self.database_dir = database_dir
         self.labels_dir = labels_dir
+
+        if not os.path.exists(self.database_dir):
+            os.mkdir(self.database_dir)
+
+        if not os.path.exists(self.labels_dir):
+            os.mkdir(self.labels_dir)
 
     def read_flac(self, filepath: str, preprocess: bool = True) -> dict:
         # Check if the filepath is valid
@@ -126,13 +134,13 @@ class AudioPreparationTool:
                             # Load and preprocess .flac file
                             data = self.process_audio_data(filepath=filepath)
                             # Generate spectrogram
-                            log_mel_spectrogram = self.compute_spectrogram(sample=data,
-                                                                           window_length=25,
-                                                                           overlap=10,
-                                                                           log_mel=True,
-                                                                           n_freq_components=23)
-                            log_mel_image = utils.spec2img(log_mel_spectrogram)
-                            # log_mel_image.save("<filepath>.png>")
+                            spectrogram = self.compute_spectrogram(sample=data,
+                                                                   window_length=25,
+                                                                   overlap=10,
+                                                                   log_mel=True,
+                                                                   n_freq_components=23)
+                            spectrogram = utils.spec2img(spectrogram)
+                            spectrogram.save(os.path.join(self.database_dir, filename) + ".png")
 
                             # PROCESS TRANSCRIPTIONS...
                             transcript = line.split(" ", 1)[1]  # Get transcription from .trans.txt file
@@ -140,10 +148,21 @@ class AudioPreparationTool:
                             token = ctc_tokenizer.tokenizer(vocabulary=vocabulary,
                                                             sentence=transcript)
 
+                            # Add spectrogram and corresponding token to the dictionary
+                            spectrogram_filename = filename + '.png'
+                            if spectrogram_filename not in dataset_dictionary:
+                                dataset_dictionary[spectrogram_filename] = token
+
                             line = f.readline()
 
-                            # TODO:
-                            #  - Prepare saving spectrograms to PNG format images in the given directory,
-                            #  - Add storing spectrograms and corresponding tokens in the dictionary,
-                            #  - Convert dictionary into pandas dataframe
-                            #  - Convert pandas dataframe to feather type
+        # Convert dictionary into pandas dataframe
+        dataset_dataframe = pd.DataFrame([(spec, token) for spec, token in dataset_dictionary.items()],
+                                         columns=['Spectrogram', 'Token'])
+        # Save the DataFrame to a CSV file
+        dataset_dataframe.to_csv(os.path.join(self.labels_dir, 'dataset_dataframe.csv'), index=False)
+
+        # Save the DataFrame to a feather file
+        feather.write_dataframe(dataset_dataframe, 'feather_dataset.feather')
+
+        # Save dictionary as .npy file:
+        np.save(os.path.join(self.labels_dir, 'dataset_dictionary.npy'), dataset_dictionary)
