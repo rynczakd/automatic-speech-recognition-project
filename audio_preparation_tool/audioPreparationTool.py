@@ -162,7 +162,7 @@ class AudioPreparationTool:
         dataset_dataframe.to_csv(os.path.join(self.labels_dir, 'dataset_dataframe.csv'), index=False)
 
         # Save the DataFrame to a feather file
-        feather.write_dataframe(dataset_dataframe, 'feather_dataset.feather')
+        feather.write_dataframe(dataset_dataframe, os.path.join(self.labels_dir, 'feather_dataset.feather'))
 
         # Save dictionary as .npy file:
         np.save(os.path.join(self.labels_dir, 'dataset_dictionary.npy'), dataset_dictionary)
