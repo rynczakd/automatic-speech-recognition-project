@@ -50,7 +50,7 @@ class AudioPreparationTool:
             data = np.mean(data, axis=1)
 
         return data
-            
+
     @staticmethod
     def resample_signal(sample: dict, sampling_frequency: int = 16000) -> dict:
         # Extract data and sample rate from dictionary
