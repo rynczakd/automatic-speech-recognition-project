@@ -71,4 +71,5 @@ def img2spec(spectrogram_image: Image.Image) -> np.ndarray:
     spectrogram = spectrogram.reshape(1, spectrogram.shape[0], spectrogram.shape[1])
     # Scale values to range (0, 1)
     spectrogram = spectrogram / 255
+    
     return spectrogram
