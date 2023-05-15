@@ -103,13 +103,13 @@ To create mel filterbank, we need to first define the parameters of the filterba
 Then, we can compute the center frequencies of the mel-frequency bins. To convert frequencies in terms of Hertz to mel-scale we can use the following formula:  
 $$M(f) = 2595 \log_{10}(1 + \frac{f}{700.0})$$  
 Knowing the above equation, we can calculate the minimum and maximum mel frequencies and then divide the mel frequency range into equally spaced points:
-$$M(\operatorname{linspace}(M(\mathrm{lower\ frequency})\, M(\mathrm{upper\ frequency})\, \mathrm{number\ of\ filters}+2))$$  
+$$M({linspace}(M(\mathrm{lower\ frequency})\, M(\mathrm{upper\ frequency})\, \mathrm{number\ of\ filters}+2))$$  
 The reason for adding 2 to the number of filters in the equation above is to include the lower and upper frequency bounds in the filterbank.
 
 Then, we can convert each mel frequency point back to Hertz using the inverse mel frequency formula. To convert mel-scale values to Hertz we can use following formula:
 $$M^{-1}(m) = 700(10 ^ {\frac{m}{2595}} - 1)$$  
 Our inverse mel frequency formula looks therefore as follows:
-$$M^{-1}(\operatorname{linspace}(M(\mathrm{lower\ frequency})\, M(\mathrm{upper\ frequency})\, \mathrm{number\ of\ filters}+2))$$  
+$$M^{-1}({linspace}(M(\mathrm{lower\ frequency})\, M(\mathrm{upper\ frequency})\, \mathrm{number\ of\ filters}+2))$$  
 
 Note that in order to convert the obtained frequencies into FFT bins, we need to multiply the obtained frequency values by the scaling factor: 
 $$\frac{nfft + 1}{sample rate}$$
