@@ -5,7 +5,7 @@ import numpy as np
 import pandas as pd
 import soundfile as sf
 import scipy.signal as sig
-from ctcTokenizer.ctcTokenizer import CtcTokenizer
+from ctc_tokenizer.ctcTokenizer import CtcTokenizer
 from spectrogramGenerator import SpectrogramGenerator
 from utils.audioUtils import first_power_of_2
 from utils.audioUtils import spec2img
