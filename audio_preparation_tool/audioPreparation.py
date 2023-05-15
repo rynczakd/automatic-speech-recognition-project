@@ -1,16 +1,17 @@
 import os
 import math
-import utils
 import feather
 import numpy as np
 import pandas as pd
 import soundfile as sf
 import scipy.signal as sig
-from ctcTokenizer import CtcTokenizer
+from ctcTokenizer.ctcTokenizer import CtcTokenizer
 from spectrogramGenerator import SpectrogramGenerator
+from utils.audioUtils import first_power_of_2
+from utils.audioUtils import spec2img
 
 
-class AudioPreparationTool:
+class AudioPreparation:
 
     def __init__(self, root_dir: str, database_dir: str, labels_dir: str):
         self.root_dir = root_dir
@@ -95,7 +96,7 @@ class AudioPreparationTool:
 
         # Prepare variables for STFT
         window_size = int(sample['fs'] * window_length / 1000)
-        fft_size = utils.first_power_of_2(int(sample['fs'] * window_length / 1000))
+        fft_size = first_power_of_2(int(sample['fs'] * window_length / 1000))
         step_size = int(sample['fs'] * overlap / 1000)
 
         # Create instance of SpectrogramGenerator
@@ -139,7 +140,7 @@ class AudioPreparationTool:
                                                                    overlap=10,
                                                                    log_mel=True,
                                                                    n_freq_components=23)
-                            spectrogram = utils.spec2img(spectrogram)
+                            spectrogram = spec2img(spectrogram)
                             spectrogram.save(os.path.join(self.database_dir, filename) + ".png")
 
                             # PROCESS TRANSCRIPTIONS...
