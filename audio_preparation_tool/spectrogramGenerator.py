@@ -1,8 +1,8 @@
 # Most of the spectrogram code is taken from: https://timsainburg.com/python-mel-compression-inversion.html
-import utils
 import numpy as np
 import scipy.ndimage
 from numpy.fft import rfft
+from utils.audioUtils import get_filter_bank
 
 
 class SpectrogramGenerator:
@@ -91,11 +91,11 @@ class SpectrogramGenerator:
     def create_mel_filter(self, n_freq_components: int, lower_freq: int, upper_freq: int) -> (np.ndarray, np.ndarray):
 
         # Create a filter to convolve with the spectrogram to get ot mel-scale values
-        mel_inversion_filter = utils.get_filter_bank(num_filters=n_freq_components,
-                                                     nfft=self.fft_size,
-                                                     sample_rate=self.sample_rate,
-                                                     lower_freq=lower_freq,
-                                                     upper_freq=upper_freq)
+        mel_inversion_filter = get_filter_bank(num_filters=n_freq_components,
+                                               nfft=self.fft_size,
+                                               sample_rate=self.sample_rate,
+                                               lower_freq=lower_freq,
+                                               upper_freq=upper_freq)
 
         # Normalize filter
         mel_filter = mel_inversion_filter.T / mel_inversion_filter.sum(axis=1)
