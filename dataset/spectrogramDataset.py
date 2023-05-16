@@ -7,6 +7,7 @@ from torch.utils.data import Dataset
 from torchvision import transforms
 from typing import Any, List, Optional, Tuple
 from utils.audioUtils import img2spec
+from utils.datasetUtils import pad_and_sort_batch
 
 
 class SpectrogramDataset(Dataset):
@@ -22,16 +23,15 @@ class SpectrogramDataset(Dataset):
         self.root_dir = root_dir
         self.spectrograms = self.data[spectrogram_column]
         self.tokens = self.data[token_column]
-
         self.transform = transforms.Compose(transform) if transform else nn.Identity()
 
     def __getitem__(self, item: int) -> Tuple[str, Any, nn.Module]:
         spectrogram_path = os.path.join(self.root_dir, self.spectrograms.iloc[item])
-
+        # Return sample from the dataset
         return spectrogram_path, self.tokens.iloc[item], self.transform
 
     def __len__(self):
-
+        # Return length of the dataset
         return len(self.spectrograms)
 
     @staticmethod
@@ -53,7 +53,9 @@ class SpectrogramDataset(Dataset):
 
             loaded_samples.append(spectrogram)
 
-        # TODO: Prepare batch padding and apply transforms
+        padded_batch, tokens, padding_mask, _ = pad_and_sort_batch(batch=loaded_samples,
+                                                                   tokens=tokens)
 
+        augmented_samples = transform(torch.FloatTensor(padded_batch))
 
-
+        return augmented_samples, torch.LongTensor(padding_mask), torch.LongTensor(tokens)
