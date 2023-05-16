@@ -1,14 +1,11 @@
 import os
 import pandas as pd
 from PIL import Image
-
 import torch
 import torch.nn as nn
-import torchvision
 from torch.utils.data import Dataset
-
+from torchvision import transforms
 from typing import Any, List, Optional, Tuple
-
 from utils.audioUtils import img2spec
 
 
@@ -19,21 +16,22 @@ class SpectrogramDataset(Dataset):
                  root_dir: str,
                  spectrogram_column: str,
                  token_column: str,
-                 transforms: Optional[List] = None) -> None:
+                 transform: Optional[List] = None) -> None:
         # Data loading
         self.data = pd.read_feather(data_feather)
+        self.root_dir = root_dir
         self.spectrograms = self.data[spectrogram_column]
         self.tokens = self.data[token_column]
 
-        self.root_dir = root_dir
-        self.transforms = transforms
+        self.transform = transforms.Compose(transform) if transform else nn.Identity()
 
-    def __getitem__(self, item: int) -> Tuple[str, Any, Optional[list]]:
+    def __getitem__(self, item: int) -> Tuple[str, Any, nn.Module]:
         spectrogram_path = os.path.join(self.root_dir, self.spectrograms.iloc[item])
 
-        return spectrogram_path, self.tokens.iloc[item], self.transforms
+        return spectrogram_path, self.tokens.iloc[item], self.transform
 
     def __len__(self):
+
         return len(self.spectrograms)
 
     @staticmethod
@@ -43,6 +41,7 @@ class SpectrogramDataset(Dataset):
         for sample in batch:
             spectrograms_path.append(sample[0])
             tokens.append(sample[1])
+        transform = batch[0][3]
 
         loaded_samples = list()
         # Iterate over spectrograms paths in batch and load images
@@ -53,6 +52,8 @@ class SpectrogramDataset(Dataset):
                 spectrogram = img2spec(spectrogram)
 
             loaded_samples.append(spectrogram)
+
+        # TODO: Prepare batch padding and apply transforms
 
 
 
