@@ -117,10 +117,21 @@ class AudioPreparation:
 
     def generate_database(self):
         # Prepare vocabulary for CTC loss function
+        print("PREPARING VOCABULARY...")
         ctc_tokenizer = CtcTokenizer(root_dir=self.root_dir)
-        vocabulary, _ = ctc_tokenizer.prepare_vocabulary(remove_punctuation=False)
+        vocabulary, ctc_decoder = ctc_tokenizer.prepare_vocabulary(remove_punctuation=False)
+
+        # Create vocabulary and decoder dataframe
+        vocabulary_dataframe = pd.DataFrame([(letter, index) for letter, index in vocabulary.items()],
+                                            columns=['Character', 'Index'])
+        decoder_dataframe = pd.DataFrame([(index, letter) for index, letter in ctc_decoder.items()],
+                                         columns=['Index', 'Character'])
+        # Write dataframe to .feather file
+        feather.write_dataframe(vocabulary_dataframe, os.path.join(self.labels_dir, 'feather_vocab.feather'))
+        feather.write_dataframe(decoder_dataframe, os.path.join(self.labels_dir, 'feather_decoder.feather'))
 
         # Prepare empty dictionary for spectrogram and label pairs
+        print("GENERATING DATASET...")
         dataset_dictionary = dict()
         for sub_dir, _, files in os.walk(self.root_dir):
             for file in files:
@@ -146,19 +157,18 @@ class AudioPreparation:
                             # PROCESS TRANSCRIPTIONS...
                             transcript = line.split(" ", 1)[1]  # Get transcription from .trans.txt file
                             transcript = transcript.strip().lower().replace("\n", "")
-                            token = ctc_tokenizer.tokenizer(vocabulary=vocabulary,
-                                                            sentence=transcript)
 
-                            # Add spectrogram and corresponding token to the dictionary
+                            # Add spectrogram and corresponding transcription to the dictionary
                             spectrogram_filename = filename + '.png'
                             if spectrogram_filename not in dataset_dictionary:
-                                dataset_dictionary[spectrogram_filename] = token
+                                dataset_dictionary[spectrogram_filename] = transcript
 
                             line = f.readline()
 
+        print("SAVING DATASET...")
         # Convert dictionary into pandas dataframe
         dataset_dataframe = pd.DataFrame([(spec, token) for spec, token in dataset_dictionary.items()],
-                                         columns=['Spectrogram', 'Token'])
+                                         columns=['Spectrogram', 'Transcription'])
         # Save the DataFrame to a CSV file
         dataset_dataframe.to_csv(os.path.join(self.labels_dir, 'dataset_dataframe.csv'), index=False)
 
