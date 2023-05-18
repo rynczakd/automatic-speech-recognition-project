@@ -1,6 +1,6 @@
 # Most of the spectrogram code is taken from: https://timsainburg.com/python-mel-compression-inversion.html
 import numpy as np
-import scipy.ndimage
+from scipy.ndimage import zoom
 from numpy.fft import rfft
 from utils.audioUtils import get_filter_bank
 
@@ -106,9 +106,8 @@ class SpectrogramGenerator:
     def make_mel(spectrogram: np.ndarray, mel_filter: np.ndarray, shorten_factor: int = 1) -> np.ndarray:
         # Compute mel spectrogram as matrix multiplication (TxS):
         mel_spectrogram = np.transpose(mel_filter).dot(np.transpose(spectrogram))
-        mel_spectrogram = scipy.ndimage.zoom(
-            mel_spectrogram.astype("float32"), [1, 1.0 / shorten_factor]
-        ).astype("float16")
+        mel_spectrogram = zoom(
+            mel_spectrogram.astype("float32"), [1, 1.0 / shorten_factor]).astype("float16")
         mel_spectrogram = mel_spectrogram[:, 1:-1]  # a little hacky but seemingly needed for clipping
 
         return mel_spectrogram
