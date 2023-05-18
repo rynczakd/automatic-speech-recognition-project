@@ -6,6 +6,7 @@ import torch.nn as nn
 from torch.utils.data import Dataset
 from torchvision import transforms
 from typing import Any, List, Optional, Tuple
+from ctc_tokenizer.ctcTokenizer import CtcTokenizer
 from utils.audioUtils import img2spec
 from utils.datasetUtils import pad_and_sort_batch
 
@@ -16,19 +17,21 @@ class SpectrogramDataset(Dataset):
                  data_feather: str,
                  root_dir: str,
                  spectrogram_column: str,
-                 token_column: str,
+                 transcriptions_column: str,
+                 vocabulary_dir: str,
                  transform: Optional[List] = None) -> None:
         # Data loading
         self.data = pd.read_feather(data_feather)
         self.root_dir = root_dir
         self.spectrograms = self.data[spectrogram_column]
-        self.tokens = self.data[token_column]
+        self.transcriptions = self.data[transcriptions_column]
+        self.ctc_vocabulary = pd.read_feather(vocabulary_dir).set_index('Character')['Index'].to_dict()
         self.transform = transforms.Compose(transform) if transform else nn.Identity()
 
-    def __getitem__(self, item: int) -> Tuple[str, Any, nn.Module]:
+    def __getitem__(self, item: int) -> Tuple[str, Any, Any, nn.Module]:
         spectrogram_path = os.path.join(self.root_dir, self.spectrograms.iloc[item])
         # Return sample from the dataset
-        return spectrogram_path, self.tokens.iloc[item], self.transform
+        return spectrogram_path, self.transcriptions.iloc[item], self.ctc_vocabulary, self.transform
 
     def __len__(self):
         # Return length of the dataset
@@ -36,26 +39,39 @@ class SpectrogramDataset(Dataset):
 
     @staticmethod
     def spectrogram_collate(batch: List, convert_to_array: bool = True):
-        spectrograms_path, tokens = list(), list()
+        spectrograms_path, transcripts = list(), list()
         # Iterate over samples in batch
         for sample in batch:
             spectrograms_path.append(sample[0])
-            tokens.append(sample[1])
+            transcripts.append(sample[1])
+        vocabulary = batch[0][2]
         transform = batch[0][3]
 
         loaded_samples = list()
         # Iterate over spectrograms paths in batch and load images
         for path in spectrograms_path:
-            spectrogram = Image.open(path)
+            spectrogram = Image.open(str(path))
             # Convert image to numpy.ndarray
             if convert_to_array:
                 spectrogram = img2spec(spectrogram)
 
             loaded_samples.append(spectrogram)
 
-        padded_batch, tokens, padding_mask, _ = pad_and_sort_batch(batch=loaded_samples,
-                                                                   tokens=tokens)
+        tokens = list()
+        # Iterate over transcriptions in batch and convert them into tokens for CTC loss
+        for transcript in transcripts:
+            token = CtcTokenizer.tokenizer(vocabulary=vocabulary, sentence=transcript)
+            tokens.append(token)
 
-        augmented_samples = transform(torch.FloatTensor(padded_batch))
+        padded_samples, padding_mask, padded_tokens, tokens_mask = pad_and_sort_batch(loaded_samples, tokens)
 
-        return augmented_samples, torch.LongTensor(padding_mask), torch.LongTensor(tokens)
+        return torch.from_numpy(padded_samples), torch.from_numpy(padding_mask), torch.from_numpy(padded_tokens), \
+               torch.from_numpy(tokens_mask)
+
+
+        # spectrograms_tensor, tokens_tensor, padding_mask_tensor, token_mask_tensor, sequence_lengths = \
+        #     pad_and_sort_batch(loaded_samples, tokens)
+        #
+        # return spectrograms_tensor, tokens_tensor, padding_mask_tensor, token_mask_tensor, sequence_lengths
+
+
