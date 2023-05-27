@@ -1,7 +1,6 @@
 import os
 import pandas as pd
 from PIL import Image
-import torch
 import torch.nn as nn
 from torch.utils.data import Dataset
 from torchvision import transforms
@@ -17,14 +16,14 @@ class SpectrogramDataset(Dataset):
                  data_feather: str,
                  root_dir: str,
                  spectrogram_column: str,
-                 transcriptions_column: str,
+                 transcription_column: str,
                  vocabulary_dir: str,
                  transform: Optional[List] = None) -> None:
         # Data loading
         self.data = pd.read_feather(data_feather)
         self.root_dir = root_dir
         self.spectrograms = self.data[spectrogram_column]
-        self.transcriptions = self.data[transcriptions_column]
+        self.transcriptions = self.data[transcription_column]
         self.ctc_vocabulary = pd.read_feather(vocabulary_dir).set_index('Character')['Index'].to_dict()
         self.transform = transforms.Compose(transform) if transform else nn.Identity()
 
@@ -63,15 +62,8 @@ class SpectrogramDataset(Dataset):
             token = CtcTokenizer.tokenizer(vocabulary=vocabulary, sentence=transcript)
             tokens.append(token)
 
-        padded_samples, padding_mask, padded_tokens, tokens_mask = pad_and_sort_batch(loaded_samples, tokens)
+        spectrograms, tokens, padding_mask, token_mask, sequence_lengths, token_lengths = \
+            pad_and_sort_batch(batch=loaded_samples,
+                               tokens=tokens)
 
-        return torch.from_numpy(padded_samples), torch.from_numpy(padding_mask), torch.from_numpy(padded_tokens), \
-               torch.from_numpy(tokens_mask)
-
-
-        # spectrograms_tensor, tokens_tensor, padding_mask_tensor, token_mask_tensor, sequence_lengths = \
-        #     pad_and_sort_batch(loaded_samples, tokens)
-        #
-        # return spectrograms_tensor, tokens_tensor, padding_mask_tensor, token_mask_tensor, sequence_lengths
-
-
+        return spectrograms, tokens, padding_mask, token_mask, sequence_lengths, token_lengths

@@ -9,16 +9,19 @@ def sort_batch(batch: torch.Tensor,
                tokens: torch.Tensor,
                padding_mask: torch.Tensor,
                token_mask: torch.Tensor,
-               widths: torch.Tensor):
+               widths: torch.Tensor,
+               token_lengths: torch.Tensor):
     # Sort samples by the width of the spectrograms with the longest sequence first
     sequence_lengths, permutation_index = widths.sort(dim=0, descending=True)
-    # Sort spectrogram batch and token batch
+    # Rearrange spectrogram batch, tokens, padding masks and lengths
     spectrograms_tensor = batch[permutation_index]
     tokens_tensor = tokens[permutation_index]
     padding_mask_tensor = padding_mask[permutation_index]
     token_mask_tensor = token_mask[permutation_index]
+    token_lengths_tensor = token_lengths[permutation_index]
 
-    return spectrograms_tensor, tokens_tensor, padding_mask_tensor, token_mask_tensor, sequence_lengths
+    return spectrograms_tensor, tokens_tensor, padding_mask_tensor, token_mask_tensor, sequence_lengths, \
+        token_lengths_tensor
 
 
 def pad_and_sort_batch(batch: List, tokens: List, batch_value: np.float64 = 0.0, token_value: int = 99):
@@ -36,10 +39,11 @@ def pad_and_sort_batch(batch: List, tokens: List, batch_value: np.float64 = 0.0,
 
     for i, spectrogram in enumerate(batch):
         padded_samples[i, :, :, :spectrogram.shape[2]] = spectrogram
-        padding_mask[i, :, :, :spectrogram.shape[2]] = np.float64(0)
+        padding_mask[i, :, :, :spectrogram.shape[2]] = np.float64(0.0)
 
     # Determine maximum token length
-    max_token_length = max([len(token) for token in tokens])
+    token_lengths = [len(token) for token in tokens]
+    max_token_length = max(token_lengths)
 
     # Define output shape for tokens in batch
     token_output_shape = (len(batch), max_token_length)
@@ -52,10 +56,10 @@ def pad_and_sort_batch(batch: List, tokens: List, batch_value: np.float64 = 0.0,
         padded_tokens[i, :len(token)] = token
         token_mask[i, :len(token)] = int(0)
 
-    return padded_samples, padding_mask, padded_tokens, token_mask
+    return sort_batch(batch=torch.tensor(padded_samples),
+                      tokens=torch.tensor(padded_tokens),
+                      padding_mask=torch.tensor(padding_mask),
+                      token_mask=torch.tensor(token_mask),
+                      widths=torch.tensor(spectrogram_widths),
+                      token_lengths=torch.tensor(token_lengths))
 
-    # return sort_batch(batch=torch.tensor(padded_samples),
-    #                   tokens=torch.tensor(padded_tokens),
-    #                   padding_mask=torch.tensor(padding_mask),
-    #                   token_mask=torch.tensor(token_mask),
-    #                   widths=torch.tensor(spectrogram_widths))
