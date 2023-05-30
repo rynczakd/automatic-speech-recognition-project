@@ -62,8 +62,8 @@ class SpectrogramDataset(Dataset):
             token = CtcTokenizer.tokenizer(vocabulary=vocabulary, sentence=transcript)
             tokens.append(token)
 
-        spectrograms, tokens, padding_mask, token_mask, sequence_lengths, token_lengths = \
+        spectrograms, tokens, padding_mask, token_mask, spectrograms_widths, tokens_lengths = \
             pad_and_sort_batch(batch=loaded_samples,
                                tokens=tokens)
 
-        return spectrograms, tokens, padding_mask, token_mask, sequence_lengths, token_lengths
+        return spectrograms, tokens, padding_mask, token_mask, spectrograms_widths, tokens_lengths

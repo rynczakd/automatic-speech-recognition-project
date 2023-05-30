@@ -1,33 +1,33 @@
 # datasetUtils.py
 
-import torch
 import numpy as np
 from typing import List
 
 
-def sort_batch(batch: torch.Tensor,
-               tokens: torch.Tensor,
-               padding_mask: torch.Tensor,
-               token_mask: torch.Tensor,
-               widths: torch.Tensor,
-               token_lengths: torch.Tensor):
+def sort_batch(batch: np.ndarray,
+               tokens: np.ndarray,
+               padding_mask: np.ndarray,
+               token_mask: np.ndarray,
+               widths: np.ndarray,
+               token_lengths: np.ndarray):
     # Sort samples by the width of the spectrograms with the longest sequence first
-    sequence_lengths, permutation_index = widths.sort(dim=0, descending=True)
-    # Rearrange spectrogram batch, tokens, padding masks and lengths
-    spectrograms_tensor = batch[permutation_index]
-    tokens_tensor = tokens[permutation_index]
-    padding_mask_tensor = padding_mask[permutation_index]
-    token_mask_tensor = token_mask[permutation_index]
-    token_lengths_tensor = token_lengths[permutation_index]
+    permutation_index = np.argsort(widths, axis=0)
 
-    return spectrograms_tensor, tokens_tensor, padding_mask_tensor, token_mask_tensor, sequence_lengths, \
-        token_lengths_tensor
+    # Rearrange spectrogram batch, tokens, padding masks and lengths
+    batch = batch[permutation_index]
+    tokens = tokens[permutation_index]
+    padding_mask = padding_mask[permutation_index]
+    token_mask = token_mask[permutation_index]
+    widths = widths[permutation_index]
+    token_lengths = token_lengths[permutation_index]
+
+    return batch, tokens, padding_mask, token_mask, widths, token_lengths
 
 
 def pad_and_sort_batch(batch: List, tokens: List, batch_value: np.float64 = 0.0, token_value: int = 99):
     # Define spectrogram dimensions
     spectrogram_channel, spectrogram_height = batch[0].shape[0], batch[0].shape[1]
-    spectrogram_widths = [sample.shape[2] for sample in batch]
+    spectrogram_widths = np.array([sample.shape[2] for sample in batch])
     max_spectrogram_width = np.max(spectrogram_widths)
 
     # Define output shape for spectrograms in batch
@@ -42,8 +42,8 @@ def pad_and_sort_batch(batch: List, tokens: List, batch_value: np.float64 = 0.0,
         padding_mask[i, :, :, :spectrogram.shape[2]] = np.float64(0.0)
 
     # Determine maximum token length
-    token_lengths = [len(token) for token in tokens]
-    max_token_length = max(token_lengths)
+    token_lengths = np.array([len(token) for token in tokens])
+    max_token_length = np.max(token_lengths)
 
     # Define output shape for tokens in batch
     token_output_shape = (len(batch), max_token_length)
@@ -56,10 +56,9 @@ def pad_and_sort_batch(batch: List, tokens: List, batch_value: np.float64 = 0.0,
         padded_tokens[i, :len(token)] = token
         token_mask[i, :len(token)] = int(0)
 
-    return sort_batch(batch=torch.tensor(padded_samples),
-                      tokens=torch.tensor(padded_tokens),
-                      padding_mask=torch.tensor(padding_mask),
-                      token_mask=torch.tensor(token_mask),
-                      widths=torch.tensor(spectrogram_widths),
-                      token_lengths=torch.tensor(token_lengths))
-
+    return sort_batch(batch=padded_samples,
+                      tokens=padded_tokens,
+                      padding_mask=padding_mask,
+                      token_mask=token_mask,
+                      widths=spectrogram_widths,
+                      token_lengths=token_lengths)
