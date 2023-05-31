@@ -11,7 +11,7 @@ def sort_batch(batch: np.ndarray,
                widths: np.ndarray,
                token_lengths: np.ndarray):
     # Sort samples by the width of the spectrograms with the longest sequence first
-    permutation_index = np.argsort(widths, axis=0)
+    permutation_index = np.argsort(widths, axis=0)[::-1]
 
     # Rearrange spectrogram batch, tokens, padding masks and lengths
     batch = batch[permutation_index]
