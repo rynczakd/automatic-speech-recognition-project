@@ -8,6 +8,7 @@ from typing import Any, List, Optional, Tuple
 from ctc_tokenizer.ctcTokenizer import CtcTokenizer
 from utils.audioUtils import img2spec
 from utils.datasetUtils import pad_and_sort_batch
+from dataset.spectrogramAugmentation import TimeMasking, FrequencyMasking, ToTensor
 
 
 class SpectrogramDataset(Dataset):
@@ -18,7 +19,8 @@ class SpectrogramDataset(Dataset):
                  spectrogram_column: str,
                  transcription_column: str,
                  vocabulary_dir: str,
-                 transform: Optional[List] = None) -> None:
+                 transform: Optional[List] = None,
+                 spec_augment: Optional[bool] = True) -> None:
         # Data loading
         self.data = pd.read_feather(data_feather)
         self.root_dir = root_dir
@@ -26,11 +28,12 @@ class SpectrogramDataset(Dataset):
         self.transcriptions = self.data[transcription_column]
         self.ctc_vocabulary = pd.read_feather(vocabulary_dir).set_index('Character')['Index'].to_dict()
         self.transform = transforms.Compose(transform) if transform else nn.Identity()
+        self.spec_augment = spec_augment
 
-    def __getitem__(self, item: int) -> Tuple[str, Any, Any, nn.Module]:
+    def __getitem__(self, item: int) -> Tuple[str, Any, Any, nn.Module, bool]:
         spectrogram_path = os.path.join(self.root_dir, self.spectrograms.iloc[item])
         # Return sample from the dataset
-        return spectrogram_path, self.transcriptions.iloc[item], self.ctc_vocabulary, self.transform
+        return spectrogram_path, self.transcriptions.iloc[item], self.ctc_vocabulary, self.transform, self.spec_augment
 
     def __len__(self):
         # Return length of the dataset
@@ -45,6 +48,7 @@ class SpectrogramDataset(Dataset):
             transcripts.append(sample[1])
         vocabulary = batch[0][2]
         transform = batch[0][3]
+        spec_augment = batch[0][4]
 
         loaded_samples = list()
         # Iterate over spectrograms paths in batch and load images
@@ -65,5 +69,20 @@ class SpectrogramDataset(Dataset):
         spectrograms, tokens, padding_mask, token_mask, spectrograms_widths, tokens_lengths = \
             pad_and_sort_batch(batch=loaded_samples,
                                tokens=tokens)
+
+        # Apply custom SpecAugment
+        if spec_augment:
+            time_masking = TimeMasking(max_time_mask_percent=0.1, num_time_masks=1, zero_masking=True)
+            freq_masking = FrequencyMasking(max_freq_mask_percent=0.15, num_time_masks=1, zero_masking=True)
+
+            spectrograms = time_masking(spectrograms, spectrograms_widths)
+            spectrograms = freq_masking(spectrograms)
+
+        # Convert numpy arrays to torch Tensor
+        to_tensor = ToTensor()
+        spectrograms, tokens, padding_mask, token_mask, spectrograms_widths, tokens_lengths = to_tensor(batch=(
+            spectrograms, tokens, padding_mask, token_mask, spectrograms_widths, tokens_lengths))
+
+        spectrograms = transform(spectrograms)
 
         return spectrograms, tokens, padding_mask, token_mask, spectrograms_widths, tokens_lengths

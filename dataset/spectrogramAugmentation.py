@@ -1,12 +1,12 @@
 # Custom SpecAugment for padded spectrograms
 
+import torch
 import random
 import numpy as np
 
 
 class TimeMasking:
     def __init__(self,
-                 spectrograms_widths: np.array,
                  max_time_mask_percent: float,
                  num_time_masks: int,
                  zero_masking: bool) -> None:
@@ -14,23 +14,21 @@ class TimeMasking:
         if not 0.0 <= max_time_mask_percent <= 1.0:
             raise ValueError(f"The value of p must be between 0.0 and 1.0 ({max_time_mask_percent} given).")
 
-        self.spectrograms_widths = spectrograms_widths
         self.max_time_mask_percent = max_time_mask_percent  # Maximum possible length of the mask
         self.num_time_masks = num_time_masks  # Number of time masks to apply
         self.zero_masking = zero_masking
 
-    def __call__(self, batch: np.ndarray) -> np.ndarray:
+    def __call__(self, batch: np.ndarray, spectrograms_widths: np.array) -> np.ndarray:
+        return self.time_mask(batch, spectrograms_widths)
 
-        return self.time_mask(batch)
-
-    def time_mask(self, spectrograms: np.ndarray) -> np.ndarray:
+    def time_mask(self, spectrograms: np.ndarray, spectrograms_widths: np.array) -> np.ndarray:
 
         for i in range(spectrograms.shape[0]):
             for _ in range(self.num_time_masks):
                 # Define parameters for Time Masking
                 time_mask_percent = np.random.uniform(low=0.0, high=self.max_time_mask_percent)
-                t = int(time_mask_percent * self.spectrograms_widths[i])
-                t0 = random.randint(0, self.spectrograms_widths[i] - t)
+                t = int(time_mask_percent * spectrograms_widths[i])
+                t0 = random.randint(0, spectrograms_widths[i] - t)
 
                 # Mask spectrograms
                 if self.zero_masking:
@@ -75,3 +73,11 @@ class FrequencyMasking:
                     spectrograms[i, :, f0:f0+f, :] = np.mean(spectrograms[i, :, :, :])
 
         return spectrograms
+
+
+class ToTensor:
+    def __call__(self, batch: tuple):
+        spectrograms, tokens, padding_mask, token_mask, spectrograms_widths, tokens_lengths = batch
+        return torch.from_numpy(spectrograms), torch.from_numpy(tokens), torch.from_numpy(padding_mask), \
+            torch.from_numpy(token_mask), torch.from_numpy(spectrograms_widths), torch.from_numpy(tokens_lengths)
+
