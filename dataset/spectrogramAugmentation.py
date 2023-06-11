@@ -77,7 +77,7 @@ class FrequencyMasking:
 
 class ToTensor:
     def __call__(self, batch: tuple):
-        spectrograms, tokens, padding_mask, token_mask, spectrograms_widths, tokens_lengths = batch
+        spectrograms, tokens, padding_mask, token_mask = batch
         return torch.from_numpy(spectrograms), torch.from_numpy(tokens), torch.from_numpy(padding_mask), \
-            torch.from_numpy(token_mask), torch.from_numpy(spectrograms_widths), torch.from_numpy(tokens_lengths)
+            torch.from_numpy(token_mask)
 

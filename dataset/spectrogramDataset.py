@@ -66,7 +66,7 @@ class SpectrogramDataset(Dataset):
             token = CtcTokenizer.tokenizer(vocabulary=vocabulary, sentence=transcript)
             tokens.append(token)
 
-        spectrograms, tokens, padding_mask, token_mask, spectrograms_widths, tokens_lengths = \
+        spectrograms, tokens, padding_mask, token_mask, spectrograms_widths = \
             pad_and_sort_batch(batch=loaded_samples,
                                tokens=tokens)
 
@@ -80,9 +80,9 @@ class SpectrogramDataset(Dataset):
 
         # Convert numpy arrays to torch Tensor
         to_tensor = ToTensor()
-        spectrograms, tokens, padding_mask, token_mask, spectrograms_widths, tokens_lengths = to_tensor(batch=(
-            spectrograms, tokens, padding_mask, token_mask, spectrograms_widths, tokens_lengths))
+        spectrograms, tokens, padding_mask, token_mask = to_tensor(batch=(spectrograms, tokens, padding_mask,
+                                                                          token_mask))
 
         spectrograms = transform(spectrograms)
 
-        return spectrograms, tokens, padding_mask, token_mask, spectrograms_widths, tokens_lengths
+        return spectrograms, tokens, padding_mask, token_mask

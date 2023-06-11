@@ -8,8 +8,7 @@ def sort_batch(batch: np.ndarray,
                tokens: np.ndarray,
                padding_mask: np.ndarray,
                token_mask: np.ndarray,
-               widths: np.ndarray,
-               token_lengths: np.ndarray):
+               widths: np.ndarray):
     # Sort samples by the width of the spectrograms with the longest sequence first
     permutation_index = np.argsort(widths, axis=0)[::-1]
 
@@ -19,9 +18,8 @@ def sort_batch(batch: np.ndarray,
     padding_mask = padding_mask[permutation_index]
     token_mask = token_mask[permutation_index]
     widths = widths[permutation_index]
-    token_lengths = token_lengths[permutation_index]
 
-    return batch, tokens, padding_mask, token_mask, widths, token_lengths
+    return batch, tokens, padding_mask, token_mask, widths
 
 
 def pad_and_sort_batch(batch: List, tokens: List, batch_value: np.float64 = 0.0, token_value: int = 99):
@@ -60,5 +58,4 @@ def pad_and_sort_batch(batch: List, tokens: List, batch_value: np.float64 = 0.0,
                       tokens=padded_tokens,
                       padding_mask=padding_mask,
                       token_mask=token_mask,
-                      widths=spectrogram_widths,
-                      token_lengths=token_lengths)
+                      widths=spectrogram_widths)
