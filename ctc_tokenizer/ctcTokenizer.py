@@ -51,7 +51,7 @@ class CtcTokenizer:
         return tokens
 
     @staticmethod
-    def decoder(idx_to_text: dict, labels: string) -> str:
+    def decoder(idx_to_text: dict, labels: list) -> str:
         decodes = [idx_to_text[label] for label in labels]
         return ''.join(decodes)
     
