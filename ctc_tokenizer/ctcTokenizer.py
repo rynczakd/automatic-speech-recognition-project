@@ -31,18 +31,27 @@ class CtcTokenizer:
                     line = t.readline()
 
         # Convert obtained set to a sorted list
-        vocabulary = sorted(list(unique_characters))
-        # Add blank character
-        vocabulary.insert(0, '-')
+        vocabulary = list(unique_characters)
+        # Replace space symbol with <SPACE> for future processing
+        vocabulary = sorted(list(map(lambda x: x.replace(' ', '<SPACE>'), vocabulary)))
 
         # Create character-to-index and index-to-character maps
-        char_to_idx = {char: idx for idx, char in enumerate(vocabulary)}
-        idx_to_char = {idx: char for idx, char in enumerate(vocabulary)}
+        char_to_idx = {char: int(idx) for idx, char in enumerate(vocabulary, 1)}
+        idx_to_char = {int(idx): char for idx, char in enumerate(vocabulary, 1)}
+
+        # Replace <SPACE> with space symbol for future encoding
+        idx_to_char = {int(idx): char.replace('<SPACE>', ' ') if char == '<SPACE>' else char
+                       for idx, char in idx_to_char.items()}
 
         return char_to_idx, idx_to_char
 
     @staticmethod
     def tokenizer(vocabulary: dict, sentence: string) -> list:
-        tokens = [vocabulary[char] for char in sentence]
+        tokens = [vocabulary['<SPACE>'] if char == ' ' else vocabulary[char] for char in sentence]
         return tokens
+
+    @staticmethod
+    def decoder(idx_to_text: dict, labels: string) -> str:
+        decodes = [idx_to_text[label] for label in labels]
+        return ''.join(decodes)
     
