@@ -32,7 +32,7 @@ class TimeMasking:
 
                 # Mask spectrograms
                 if self.zero_masking:
-                    spectrograms[i, :, :, t0:t0+t] = np.float64(0.0)
+                    spectrograms[i, :, :, t0:t0+t] = np.float32(0.0)
                 else:
                     spectrograms[i, :, :, t0:t0+t] = np.mean(spectrograms[i, :, :, :])
 
@@ -68,7 +68,7 @@ class FrequencyMasking:
 
                 # Mask spectrograms
                 if self.zero_masking:
-                    spectrograms[i, :, f0:f0+f, :] = np.float64(0.0)
+                    spectrograms[i, :, f0:f0+f, :] = np.float32(0.0)
                 else:
                     spectrograms[i, :, f0:f0+f, :] = np.mean(spectrograms[i, :, :, :])
 

@@ -22,7 +22,7 @@ def sort_batch(batch: np.ndarray,
     return batch, tokens, padding_mask, token_mask, widths
 
 
-def pad_and_sort_batch(batch: List, tokens: List, batch_value: np.float64 = 0.0, token_value: int = 99):
+def pad_and_sort_batch(batch: List, tokens: List, batch_value: np.float32 = 0.0, token_value: int = 99):
     # Define spectrogram dimensions
     spectrogram_channel, spectrogram_height = batch[0].shape[0], batch[0].shape[1]
     spectrogram_widths = np.array([sample.shape[2] for sample in batch])
@@ -32,12 +32,12 @@ def pad_and_sort_batch(batch: List, tokens: List, batch_value: np.float64 = 0.0,
     output_shape = (len(batch), spectrogram_channel, spectrogram_height, max_spectrogram_width)
 
     # Prepare arrays for padded samples and padding mask
-    padded_samples = np.ones(output_shape, dtype=np.float64) * batch_value
-    padding_mask = np.ones(output_shape, dtype=np.float64)
+    padded_samples = np.ones(output_shape, dtype=np.float32) * batch_value
+    padding_mask = np.ones(output_shape, dtype=np.float32)
 
     for i, spectrogram in enumerate(batch):
         padded_samples[i, :, :, :spectrogram.shape[2]] = spectrogram
-        padding_mask[i, :, :, :spectrogram.shape[2]] = np.float64(0.0)
+        padding_mask[i, :, :, :spectrogram.shape[2]] = np.float32(0.0)
 
     # Determine maximum token length
     token_lengths = np.array([len(token) for token in tokens])
