@@ -60,8 +60,6 @@ class FeatureExtractor(nn.Module):
             x = x.squeeze(1)  # Remove Channel dimension
             x = x.permute(0, 2, 1).contiguous()  # Reshape feature maps into (B, W, H)
 
-            return x  # Feature maps dimension - (B, W, H)
-
         else:
             x = x.permute(0, 3, 1, 2).contiguous()  # Reshape feature maps into (B, W, C, H)
             x = x.view(x.size(0), x.size(1), -1)
@@ -69,5 +67,4 @@ class FeatureExtractor(nn.Module):
             x = self.dropout(F.relu(self.fc2(x)))
             x = F.relu(self.fc3(x))
 
-            return x  # Feature maps dimension - (B, W, H)
-    
+        return x  # Feature maps dimension - (B, W, H)
