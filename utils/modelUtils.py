@@ -6,7 +6,7 @@ def mask_to_lengths(mask: torch.Tensor) -> torch.Tensor:
     # Convert padding mask to sample lengths
     mask_mean = torch.mean(mask, dim=2)
 
-    return ((1 - mask_mean).sum(-1)).type(torch.int)
+    return ((1 - mask_mean).sum(-1)).squeeze(1).type(torch.int)
 
 
 def get_feature_extractor_parameters(reduce_mean: bool = False) -> dict:
@@ -35,4 +35,8 @@ def get_conv_output_widths(input_widths: torch.Tensor, conv_parameters: dict = N
         kernel_size, stride, padding = conv_cfg['kernel_size'], conv_cfg['stride'], conv_cfg['padding']
         input_widths = torch.floor(((input_widths + 2 * padding[1] - (kernel_size[1] - 1) - 1) / stride[1]) + 1)
 
-    return input_widths.to(torch.float64)
+    return input_widths.type(torch.float64)
+
+
+def token_mask_to_lengths(token_mask: torch.Tensor) -> torch.Tensor:
+    return (1 - token_mask).sum(-1).type(torch.int)
