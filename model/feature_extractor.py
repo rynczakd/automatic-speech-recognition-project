@@ -3,27 +3,6 @@ from torch import nn
 import torch.nn.functional as F
 
 
-class FullyConnected(nn.Module):
-    def __init__(self, dropout: float) -> None:
-        super(FullyConnected, self).__init__()
-
-        self.fc1 = nn.Linear(in_features=6144, out_features=4096)
-        self.norm1 = nn.LayerNorm(4096)
-        self.fc2 = nn.Linear(in_features=4096, out_features=4096)
-        self.norm2 = nn.LayerNorm(4096)
-        self.fc3 = nn.Linear(in_features=4096, out_features=512)
-        self.norm3 = nn.LayerNorm(512)
-
-        self.dropout = nn.Dropout(dropout)
-
-    def forward(self, x):
-        x = self.dropout(F.gelu(self.norm1(self.fc1(x))))
-        x = self.dropout(F.gelu(self.norm2(self.fc2(x))))
-        x = F.gelu(self.norm3(self.fc3(x)))
-
-        return x
-
-
 class FeatureExtractor(nn.Module):
     def __init__(self, reduce_mean: bool = False):
         super(FeatureExtractor, self).__init__()
@@ -61,7 +40,39 @@ class FeatureExtractor(nn.Module):
 
         if not self.reduce_mean:
             # LINEAR LAYERS
-            self.dense = FullyConnected(dropout=0.2)
+            self.dense = self._create_fully_connected()
+
+    @staticmethod
+    def _create_fully_connected(input_size: int = 6144,
+                                output_dim: int = 512,
+                                hidden_size: int = 4096,
+                                num_layers: int = 3,
+                                dropout: float = 0.2) -> nn.Module:
+        assert num_layers >= 1, "Number of layers must be greater than or equal to 1"
+
+        if num_layers == 1:
+            layers = [nn.Linear(in_features=input_size, out_features=output_dim),
+                      nn.LayerNorm(normalized_shape=output_dim),
+                      nn.GELU()]
+
+            return nn.Sequential(*layers)
+
+        layers = [nn.Linear(in_features=input_size, out_features=hidden_size),
+                  nn.LayerNorm(normalized_shape=hidden_size),
+                  nn.GELU(),
+                  nn.Dropout(p=dropout)]
+
+        for _ in range(num_layers - 2):
+            layers.extend([nn.Linear(in_features=hidden_size, out_features=hidden_size),
+                           nn.LayerNorm(normalized_shape=hidden_size),
+                           nn.GELU(),
+                           nn.Dropout(p=dropout)])
+
+        layers.extend([nn.Linear(in_features=hidden_size, out_features=output_dim),
+                       nn.LayerNorm(normalized_shape=output_dim),
+                       nn.GELU()])
+
+        return nn.Sequential(*layers)
 
     def forward(self, x):
         # Define forward method for Feature Extractor
