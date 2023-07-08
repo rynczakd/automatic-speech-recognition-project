@@ -14,19 +14,18 @@ from dataset.spectrogramAugmentation import TimeMasking, FrequencyMasking, ToTen
 class SpectrogramDataset(Dataset):
 
     def __init__(self,
-                 data_feather: str,
+                 data: pd.DataFrame,
                  root_dir: str,
-                 spectrogram_column: str,
-                 transcription_column: str,
-                 vocabulary_dir: str,
+                 vocabulary: dict,
                  transform: Optional[List] = None,
                  spec_augment: Optional[bool] = True) -> None:
         # Data loading
-        self.data = pd.read_feather(data_feather)
+        self.data = data
         self.root_dir = root_dir
-        self.spectrograms = self.data[spectrogram_column]
-        self.transcriptions = self.data[transcription_column]
-        self.ctc_vocabulary = pd.read_feather(vocabulary_dir).set_index('Character')['Index'].to_dict()
+        self.spectrograms = self.data['Spectrogram']
+        self.transcriptions = self.data['Transcription']
+        self.ctc_vocabulary = vocabulary
+
         self.transform = transforms.Compose(transform) if transform else nn.Identity()
         self.spec_augment = spec_augment
 
