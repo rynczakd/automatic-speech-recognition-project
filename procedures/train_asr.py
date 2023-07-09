@@ -93,6 +93,7 @@ class BaselineTraining:
 
         # Main training loop
         for epoch in range(self.num_epochs):
+            # TODO: Implement hidden state initialization for GRU
             # Halt training and point to the first place where something went wrong
             torch.autograd.set_detect_anomaly(True)
 
