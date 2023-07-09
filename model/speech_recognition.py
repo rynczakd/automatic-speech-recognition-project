@@ -83,3 +83,4 @@ class SpeechRecognition(nn.Module):
         x = self.ctc_decoder(output)
 
         return x
+    
