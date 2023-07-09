@@ -1,3 +1,4 @@
+import config
 import torch
 from torch import nn
 from torch.nn.utils.rnn import pack_padded_sequence
@@ -26,6 +27,16 @@ class SpeechRecognition(nn.Module):
                     dropout=0.0,
                     bidirectional=True,
                     batch_first=True)
+
+    @staticmethod
+    def _init_hidden_state(random_init: bool = False):
+        # Initialize hidden state for GRU network
+        if random_init:
+            h0 = torch.randn(2, config.BATCH_SIZE, 256)
+        else:
+            h0 = torch.zeros(2, config.BATCH_SIZE, 256)
+
+        return h0
 
     @staticmethod
     def _create_classifier(input_size: int = 512,
