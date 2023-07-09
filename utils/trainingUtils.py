@@ -32,9 +32,4 @@ def set_seed(seed: int = config.RANDOM_SEED) -> None:
     random.seed(seed)  # Python seed
     np.random.seed(seed)  # NumPy
     torch.random.manual_seed(seed)  # PyTorch
-
-
-
-
-
-
+    
