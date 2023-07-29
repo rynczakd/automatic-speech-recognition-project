@@ -14,7 +14,7 @@ class SpeechRecognition(nn.Module):
 
         self.feature_extractor = FeatureExtractor(reduce_mean=False)
         self.gru = self._create_gru()
-        self.ctc_decoder = self._create_classifier()
+        self.ctc_encoder = self._create_classifier()
 
     @staticmethod
     def _create_gru(input_size: int = 512,
@@ -80,7 +80,7 @@ class SpeechRecognition(nn.Module):
         output, input_sizes = pad_packed_sequence(packed_output, batch_first=True)
 
         # Feed-forward GRU hidden states into CTC decoder
-        x = self.ctc_decoder(output)
+        x = self.ctc_encoder(output)
 
         return x
     
