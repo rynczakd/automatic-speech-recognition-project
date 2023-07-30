@@ -95,6 +95,7 @@ class CtcBeamSearch:
                         n_p_b, n_p_nb = next_beam[prefix]
                         n_p_nb = self.logsumexp(n_p_nb, p_nb + p)
                         next_beam[prefix] = (n_p_b, n_p_nb)
+
             # Sort and trim the beam before moving on to the next time-step
             beam = sorted(next_beam.items(),
                           key=lambda x: self.logsumexp(*x[1]),
