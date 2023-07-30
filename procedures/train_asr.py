@@ -1,5 +1,5 @@
-import torch
 import config
+import torch
 from torch.utils.data import DataLoader
 from dataset.spectrogramDataset import SpectrogramDataset
 from model.speech_recognition import SpeechRecognition
@@ -25,7 +25,6 @@ class BaselineTraining:
                                                                            shuffle_subset=config.SHUFFLE_SUBSET)
         self.batch_size = config.BATCH_SIZE
         self.num_epochs = config.EPOCHS
-        self.total_iters = 0
 
         if random_seed:
             set_seed(self.random_seed)
@@ -89,36 +88,75 @@ class BaselineTraining:
                                        collate_fn=SpectrogramDataset.spectrogram_collate,
                                        shuffle=False)
 
-        self.total_iters = 0
+        # Define variables for training
+        train_losses, validation_losses = list(), list()
+        num_accumulation_steps = 3
 
         # Main training loop
         for epoch in range(self.num_epochs):
-            # TODO: Implement hidden state initialization for GRU
             # Halt training and point to the first place where something went wrong
             torch.autograd.set_detect_anomaly(True)
+            print('EPOCH {}: '.format(epoch + 1))
 
-            for batch in train_loader:
+            # Set model to training mode
+            self.model.train(mode=True)
+
+            running_loss = 0.
+            accumulation_loss = 0.
+
+            for i, batch in enumerate(train_loader):
                 spectrograms, tokens, padding_mask, token_mask = batch
                 # Move spectrograms and tokens tensors to the default device
                 spectrograms, tokens = spectrograms.to(self.device), tokens.to(self.device)
 
-                # Feed-forward pass
+                # Zero gradients for every batch
+                self.optimizer.zero_grad()
+
+                # Feed-forward pass - make predictions for current batch
                 outputs = self.model(spectrograms, padding_mask)
 
-                # Computing loss using CTC Loss function
+                # Computing CTC loss and its gradients
                 loss = self.criterion(outputs, tokens, padding_mask, token_mask)
-                self.optimizer.zero_grad()
                 loss.backward()
 
                 # Gradient clipping - clip the gradient norm to given value
-                torch.nn.utils.clip_grad_norm_(self.model.parameters(), 1.0)
+                torch.nn.utils.clip_grad_norm_(self.model.parameters(), max_norm=1.0)
 
-                # Optimizer step
+                # Perform a single optimization step
                 self.optimizer.step()
 
-                # TODO: Implement accuracy and loss calculation
+                # Update the running loss
+                running_loss += loss.item()
 
-        with torch.no_grad():
-            for batch in validation_loader:
-                spectrograms, tokens, padding_mask, token_mask = batch
-                # TODO: Implement whole VALIDATION steps and move validation to separate method
+                # Update accumulation loss for its calculating for every n-minibatch
+                accumulation_loss += loss.item()
+                if i % num_accumulation_steps == 2:
+                    accumulation_loss = accumulation_loss / num_accumulation_steps
+                    print('  batch {} loss: {}'.format(i + 1, accumulation_loss))
+                    accumulation_loss = 0.
+            else:
+                validation_loss = 0.
+
+                # Turn off the gradients for validation
+                with torch.no_grad():
+                    # Set model to evaluation mode
+                    self.model.eval()
+
+                    for batch in validation_loader:
+                        spectrograms, tokens, padding_mask, token_mask = batch
+                        spectrograms, tokens = spectrograms.to(self.device), tokens.to(self.device)
+
+                        # Make predictions for current validation batch
+                        outputs = self.model(spectrograms, padding_mask)
+
+                        # Calculate CTC loss in validation mode
+                        loss = self.criterion(outputs, tokens, padding_mask, token_mask)
+                        validation_loss += loss.item()
+
+                # Update both train and validation losses
+                train_losses.append(running_loss / len(train_loader))
+                validation_losses.append(validation_loss / len(validation_loader))
+
+                print("Epoch: {}/{}.. ".format(epoch + 1, self.num_epochs),
+                      "Training Loss: {:.3f}.. ".format(train_losses[-1]),
+                      "Validation Loss: {:.3f}.. ".format(validation_losses[-1]))
