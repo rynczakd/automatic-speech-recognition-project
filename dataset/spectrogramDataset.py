@@ -1,6 +1,7 @@
 import os
 import pandas as pd
 from PIL import Image
+import torch
 import torch.nn as nn
 from torch.utils.data import Dataset
 from torchvision import transforms
@@ -84,4 +85,5 @@ class SpectrogramDataset(Dataset):
 
         spectrograms = transform(spectrograms)
 
-        return spectrograms, tokens, padding_mask, token_mask
+        return spectrograms.type(torch.FloatTensor), tokens.type(torch.FloatTensor), padding_mask, token_mask
+    
