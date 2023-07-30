@@ -7,6 +7,8 @@ from model.ctc_wrapper import CTCLoss
 from utils.trainingUtils import load_and_split_dataset
 from utils.trainingUtils import load_vocabulary
 from utils.trainingUtils import set_seed
+from tqdm import tqdm
+from torch.utils.tensorboard import SummaryWriter
 
 
 class BaselineTraining:
@@ -38,7 +40,8 @@ class BaselineTraining:
         self.optimizer = None
 
         # RESULTS
-        # TODO: Implement variables for results
+        # TODO: Implement variables for metrics
+        self.writer = SummaryWriter(log_dir=config.LOG_DIR)
 
     @staticmethod
     def _create_subsets(data_feather: str,
@@ -71,6 +74,7 @@ class BaselineTraining:
         return train_dataset, validation_dataset
 
     def train(self):
+        # Configure model and optimizer
         self.model = self.model_init().to(self.device)
         self.optimizer = self.optimizer_init(params=self.model.parameters(),
                                              lr=config.LEARNING_RATE,
@@ -90,21 +94,25 @@ class BaselineTraining:
 
         # Define variables for training
         train_losses, validation_losses = list(), list()
-        num_accumulation_steps = 3
+        num_accumulation_steps = 50
 
         # Main training loop
         for epoch in range(self.num_epochs):
+
             # Halt training and point to the first place where something went wrong
             torch.autograd.set_detect_anomaly(True)
-            print('EPOCH {}: '.format(epoch + 1))
 
             # Set model to training mode
             self.model.train(mode=True)
 
+            # Prepare variables for storing training loss
             running_loss = 0.
             accumulation_loss = 0.
 
-            for i, batch in enumerate(train_loader):
+            # Prepare tqdm loop for visualization
+            batches = tqdm(enumerate(train_loader), total=len(train_loader), leave=True)
+
+            for i, batch in batches:
                 spectrograms, tokens, padding_mask, token_mask = batch
                 # Move spectrograms and tokens tensors to the default device
                 spectrograms, tokens = spectrograms.to(self.device), tokens.to(self.device)
@@ -128,12 +136,20 @@ class BaselineTraining:
                 # Update the running loss
                 running_loss += loss.item()
 
-                # Update accumulation loss for its calculating for every n-minibatch
+                # Update TQDM progress bar
+                batches.set_description(desc="Epoch [{}/{}]".format(epoch, self.num_epochs))
+                batches.set_postfix(loss=running_loss / (i + 1))
+
+                # Update accumulation loss for every n-minibatch sample
                 accumulation_loss += loss.item()
-                if i % num_accumulation_steps == 2:
+                if (i + 1) % num_accumulation_steps == 0:
                     accumulation_loss = accumulation_loss / num_accumulation_steps
-                    print('  batch {} loss: {}'.format(i + 1, accumulation_loss))
+
+                    # Update TensorBoard scalars
+                    tb_x = epoch * len(train_loader) + i + 1
+                    self.writer.add_scalar("Loss/train", accumulation_loss, tb_x)
                     accumulation_loss = 0.
+
             else:
                 validation_loss = 0.
 
@@ -157,6 +173,11 @@ class BaselineTraining:
                 train_losses.append(running_loss / len(train_loader))
                 validation_losses.append(validation_loss / len(validation_loader))
 
-                print("Epoch: {}/{}.. ".format(epoch + 1, self.num_epochs),
-                      "Training Loss: {:.3f}.. ".format(train_losses[-1]),
-                      "Validation Loss: {:.3f}.. ".format(validation_losses[-1]))
+                print("Epoch: {}/{}: ".format(epoch + 1, self.num_epochs),
+                      "Training Loss: {:.3f}: ".format(train_losses[-1]),
+                      "Validation Loss: {:.3f}: ".format(validation_losses[-1]))
+
+                self.writer.add_scalars("Training vs. Validation Loss",
+                                        {"Training": train_losses[-1],
+                                         "Validation": validation_losses[-1]}, epoch + 1)
+                self.writer.flush()
