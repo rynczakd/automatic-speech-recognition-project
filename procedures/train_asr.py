@@ -38,6 +38,8 @@ class BaselineTraining:
         self.learning_rate = config.LEARNING_RATE
         self.optimizer_init = torch.optim.AdamW
         self.optimizer = None
+        self.scheduler_init = torch.optim.lr_scheduler.ReduceLROnPlateau
+        self.scheduler = None
 
         # RESULTS
         # TODO: Implement variables for metrics
@@ -79,7 +81,11 @@ class BaselineTraining:
         self.optimizer = self.optimizer_init(params=self.model.parameters(),
                                              lr=config.LEARNING_RATE,
                                              weight_decay=config.WEIGHT_DECAY)
-        # TODO: Implement WARM-UP-SCHEDULER, COSINE-ANNEALING-LR, LEARNING-RATE-DECAY
+        self.scheduler = self.scheduler_init(optimizer=self.optimizer,
+                                             mode="min",
+                                             factor=0.1,
+                                             patience=5,
+                                             verbose=True)
 
         # Prepare Train and Validation loader
         train_loader = DataLoader(dataset=self.train_dataset,
@@ -170,6 +176,9 @@ class BaselineTraining:
                     # Update both train and validation losses
                     train_losses.append(running_loss / len(self.train_dataset))
                     validation_losses.append(validation_loss / len(self.validation_dataset))
+
+                    # Turn on the scheduler
+                    self.scheduler.step(validation_losses[-1])
 
                     # Update TQDM progress bar with per-epoch train and validation loss
                     progress.set_postfix({"train_loss ": train_losses[-1], "val_loss ": validation_losses[-1]})
