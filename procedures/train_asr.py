@@ -1,4 +1,5 @@
 import config
+import os
 import torch
 from torch.utils.data import DataLoader
 from dataset.spectrogramDataset import SpectrogramDataset
@@ -9,10 +10,12 @@ from utils.trainingUtils import load_vocabulary
 from utils.trainingUtils import set_seed
 from tqdm import tqdm
 from torch.utils.tensorboard import SummaryWriter
+from early_stopping import EarlyStopping
 
 
 class BaselineTraining:
-    def __init__(self, random_seed: bool = True) -> None:  # TODO: Implement results part with TensorBoard access
+    def __init__(self, random_seed: bool = True) -> None:
+        # TODO: Implement results part with TensorBoard access
         # Device configuration
         self.device = torch.device(config.DEVICE if torch.cuda.is_available() else "cpu")
         # Initialize the procedure
@@ -33,7 +36,7 @@ class BaselineTraining:
 
         # MODEL
         self.model_init = SpeechRecognition
-        self.model = SpeechRecognition()
+        self.model = None
         self.criterion = CTCLoss()
         self.learning_rate = config.LEARNING_RATE
         self.optimizer_init = torch.optim.AdamW
@@ -42,8 +45,19 @@ class BaselineTraining:
         self.scheduler = None
 
         # RESULTS
-        # TODO: Implement variables for metrics
+        self.checkpoint_epoch_num = 50
+        self.checkpoint = dict()
+        self.model_name = config.MODEL_NAME
+        self.results_dir = config.RESULTS_DIR
+        self.models_path = os.path.join(self.results_dir, 'models', self.model_name)
+        os.makedirs(self.models_path, exist_ok=True)
+
         self.writer = SummaryWriter(log_dir=config.LOG_DIR)
+        self.early_stopping = EarlyStopping(patience=50,
+                                            verbose=True,
+                                            delta=1.0,
+                                            log_path=self.models_path,
+                                            model_name=self.model_name)
 
     @staticmethod
     def _create_subsets(data_feather: str,
@@ -84,7 +98,7 @@ class BaselineTraining:
         self.scheduler = self.scheduler_init(optimizer=self.optimizer,
                                              mode="min",
                                              factor=0.1,
-                                             patience=5,
+                                             patience=10,
                                              verbose=True)
 
         # Prepare Train and Validation loader
@@ -156,35 +170,53 @@ class BaselineTraining:
                         # Update TensorBoard scalars
                         tb_x = epoch * len(train_loader) + i + 1
                         self.writer.add_scalar("Running loss/train", running_loss, tb_x)
-                else:
-                    # Turn off the gradients for validation
-                    with torch.no_grad():
-                        # Set model to evaluation mode
-                        self.model.eval()
 
-                        for batch in validation_loader:
-                            spectrograms, tokens, padding_mask, token_mask = batch
-                            spectrograms, tokens = spectrograms.to(self.device), tokens.to(self.device)
+                # Save model after each checkpoint epoch
+                if epoch % self.checkpoint_epoch_num == 0:
+                    self.checkpoint = {"epoch": epoch,
+                                       "model_state": self.model.state_dict(),
+                                       "optim_state": self.optimizer.state_dict()}
+                    torch.save(self.checkpoint, os.path.join(self.models_path,
+                                                             '{}_{}.pt'.format(self.model_name, epoch)))
 
-                            # Make predictions for current validation batch
-                            outputs = self.model(spectrograms, padding_mask)
+                # Set model to evaluation mode
+                self.model.eval()
 
-                            # Calculate CTC loss in validation mode
-                            loss = self.criterion(outputs, tokens, padding_mask, token_mask)
-                            validation_loss += loss.item() * spectrograms.size(0)
+                # Turn off the gradients for validation
+                with torch.no_grad():
 
-                    # Update both train and validation losses
-                    train_losses.append(running_loss / len(self.train_dataset))
-                    validation_losses.append(validation_loss / len(self.validation_dataset))
+                    for batch in validation_loader:
+                        spectrograms, tokens, padding_mask, token_mask = batch
+                        spectrograms, tokens = spectrograms.to(self.device), tokens.to(self.device)
 
-                    # Turn on the scheduler
-                    self.scheduler.step(validation_losses[-1])
+                        # Make predictions for current validation batch
+                        outputs = self.model(spectrograms, padding_mask)
 
-                    # Update TQDM progress bar with per-epoch train and validation loss
-                    progress.set_postfix({"train_loss ": train_losses[-1], "val_loss ": validation_losses[-1]})
+                        # Calculate CTC loss in validation mode
+                        loss = self.criterion(outputs, tokens, padding_mask, token_mask)
+                        validation_loss += loss.item() * spectrograms.size(0)
 
-                    # Save metrics using TensorBoard
-                    self.writer.add_scalars("Training vs. Validation Loss",
-                                            {"Training": train_losses[-1],
-                                             "Validation": validation_losses[-1]}, epoch + 1)
-                    self.writer.flush()
+                # Update both train and validation losses
+                train_losses.append(running_loss / len(self.train_dataset))
+                validation_losses.append(validation_loss / len(self.validation_dataset))
+
+                # Turn on the scheduler
+                self.scheduler.step(validation_losses[-1])
+
+                # Update TQDM progress bar with per-epoch train and validation loss
+                progress.set_postfix({"train_loss ": train_losses[-1], "val_loss ": validation_losses[-1]})
+
+                # Call Early Stopping
+                self.early_stopping(epoch=epoch,
+                                    val_loss=validation_losses[-1],
+                                    model=self.model,
+                                    optimizer=self.optimizer)
+                if self.early_stopping.early_stop:
+                    print("Early stopping")
+                    break
+
+                # Save metrics using TensorBoard
+                self.writer.add_scalars("Training vs. Validation Loss",
+                                        {"Training": train_losses[-1],
+                                         "Validation": validation_losses[-1]}, epoch + 1)
+                self.writer.flush()
