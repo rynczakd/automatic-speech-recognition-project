@@ -53,7 +53,7 @@ class BaselineTraining:
         os.makedirs(self.models_path, exist_ok=True)
 
         self.writer = SummaryWriter(log_dir=config.LOG_DIR)
-        self.early_stopping = EarlyStopping(patience=50,
+        self.early_stopping = EarlyStopping(patience=30,
                                             verbose=True,
                                             delta=1.0,
                                             log_path=self.models_path,
@@ -203,9 +203,6 @@ class BaselineTraining:
                 # Turn on the scheduler
                 self.scheduler.step(validation_losses[-1])
 
-                # Update TQDM progress bar with per-epoch train and validation loss
-                progress.set_postfix({"train_loss ": train_losses[-1], "val_loss ": validation_losses[-1]})
-
                 # Call Early Stopping
                 self.early_stopping(epoch=epoch,
                                     val_loss=validation_losses[-1],
@@ -214,6 +211,9 @@ class BaselineTraining:
                 if self.early_stopping.early_stop:
                     print("Early stopping")
                     break
+
+                # Update TQDM progress bar with per-epoch train and validation loss
+                progress.set_postfix({"train_loss ": train_losses[-1], "val_loss ": validation_losses[-1]})
 
                 # Save metrics using TensorBoard
                 self.writer.add_scalars("Training vs. Validation Loss",
