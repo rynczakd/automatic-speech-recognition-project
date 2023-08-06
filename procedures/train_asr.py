@@ -15,7 +15,7 @@ from early_stopping import EarlyStopping
 
 class BaselineTraining:
     def __init__(self, random_seed: bool = True) -> None:
-        # TODO: Implement results part with TensorBoard access
+        # TODO: Change config file to .json or use argparse for training preparation
         # Device configuration
         self.device = torch.device(config.DEVICE if torch.cuda.is_available() else "cpu")
         # Initialize the procedure
@@ -46,6 +46,7 @@ class BaselineTraining:
 
         # RESULTS
         self.checkpoint_epoch_num = 50
+        self.total_iters = 0
         self.checkpoint = dict()
         self.model_name = config.MODEL_NAME
         self.results_dir = config.RESULTS_DIR
@@ -114,7 +115,6 @@ class BaselineTraining:
 
         # Define variables for training
         train_losses, validation_losses = list(), list()
-        num_accumulation_steps = 50
 
         # Main training loop
         for epoch in range(self.num_epochs):
@@ -135,9 +135,6 @@ class BaselineTraining:
                 validation_loss = 0.
 
                 for i, batch in enumerate(train_loader):
-                    # Update progress bar
-                    progress.update(n=1)
-
                     # Get samples from single batch
                     spectrograms, tokens, padding_mask, token_mask = batch
                     # Move spectrograms and tokens tensors to the default device
@@ -165,11 +162,12 @@ class BaselineTraining:
                     # Update TQDM progress bar with loss metric
                     progress.set_postfix(ordered_dict={"train_loss - running ": running_loss})
 
-                    # Update running loss for every n-minibatch sample
-                    if (i + 1) % num_accumulation_steps == 0:
-                        # Update TensorBoard scalars
-                        tb_x = epoch * len(train_loader) + i + 1
-                        self.writer.add_scalar("Running loss/train", running_loss, tb_x)
+                    # Add loss for current step
+                    self.writer.add_scalar('Training loss', loss.item(), self.total_iters)
+                    self.total_iters += 1
+
+                    # Update progress bar
+                    progress.update(n=1)
 
                 # Save model after each checkpoint epoch
                 if epoch % self.checkpoint_epoch_num == 0:
@@ -209,7 +207,7 @@ class BaselineTraining:
                                     model=self.model,
                                     optimizer=self.optimizer)
                 if self.early_stopping.early_stop:
-                    print("Early stopping")
+                    print("Early stopping - activate...")
                     break
 
                 # Update TQDM progress bar with per-epoch train and validation loss
@@ -219,4 +217,6 @@ class BaselineTraining:
                 self.writer.add_scalars("Training vs. Validation Loss",
                                         {"Training": train_losses[-1],
                                          "Validation": validation_losses[-1]}, epoch + 1)
-                self.writer.flush()
+
+        # Close SummaryWriter after training
+        self.writer.close()
