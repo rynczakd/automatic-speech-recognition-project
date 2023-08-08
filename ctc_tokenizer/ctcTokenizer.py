@@ -1,4 +1,5 @@
 import os
+import gin
 import string
 
 
@@ -6,6 +7,7 @@ class CtcTokenizer:
     def __init__(self, root_dir):
         self.root_dir = root_dir
 
+    @gin.configurable
     def prepare_vocabulary(self, remove_punctuation: bool = False) -> (dict, dict):
         # Prepare empty list for .trans.txt files
         text_files = list()

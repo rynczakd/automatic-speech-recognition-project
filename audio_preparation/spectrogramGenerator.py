@@ -1,4 +1,5 @@
 # Most of the spectrogram code is taken from: https://timsainburg.com/python-mel-compression-inversion.html
+import gin
 import numpy as np
 from scipy.ndimage import zoom
 from numpy.fft import rfft
@@ -65,6 +66,7 @@ class SpectrogramGenerator:
 
         return audio_matrix
 
+    @gin.configurable(denylist=['audio_signal', 'threshold'])
     def log_spectrogram(self, audio_signal: np.array, log: bool = True, threshold: int = 4,
                         periodogram: bool = False) -> np.ndarray:
         # Create spectrogram

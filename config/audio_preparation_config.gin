@@ -1,0 +1,25 @@
+# ====== AUDIO PREPARATION CONSTANTS ======
+ROOT_DIR = "<PATH-TO-RAW-AUDIO-DATABASE>"
+DATABASE_DIR = "<GENERATED-DATASET-DESTINATION-PATH>"
+LABELS_DIR = "<GENERATED-LABELS-DESTINATION-PATH>"
+
+# ====== AUDIO PREPARATION ======
+AudioPreparation.root_dir = %ROOT_DIR
+AudioPreparation.database_dir = %DATABASE_DIR
+AudioPreparation.labels_dir = %LABELS_DIR
+
+# READ FLAC FILE - PREPROCESS
+read_flac.preprocess = True
+
+# COMPUTING SPECTROGRAMS
+compute_spectrogram.window_length = 25
+compute_spectrogram.overlap = 10
+compute_spectrogram.log_mel = True
+compute_spectrogram.n_freq_components = 23
+
+# ====== CTC VOCABULARY ======
+prepare_vocabulary.remove_punctuation = False
+
+# ====== SPECTROGRAM PARAMETERS ======
+log_spectrogram.log = True
+log_spectrogram.periodogram = False

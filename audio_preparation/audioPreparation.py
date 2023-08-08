@@ -1,4 +1,5 @@
 import os
+import gin
 import math
 import feather
 import numpy as np
@@ -6,15 +7,16 @@ import pandas as pd
 import soundfile as sf
 import scipy.signal as sig
 from ctc_tokenizer.ctcTokenizer import CtcTokenizer
-from spectrogramGenerator import SpectrogramGenerator
+from audio_preparation.spectrogramGenerator import SpectrogramGenerator
 from utils.audioUtils import first_power_of_2
 from utils.audioUtils import spec2img
 
 
+@gin.configurable
 class AudioPreparation:
 
     def __init__(self, root_dir: str, database_dir: str, labels_dir: str):
-        self.root_dir = root_dir
+        self.root_dir = root_dir  # Audio-dataset directory
         self.database_dir = database_dir
         self.labels_dir = labels_dir
 
@@ -24,6 +26,7 @@ class AudioPreparation:
         if not os.path.exists(self.labels_dir):
             os.mkdir(self.labels_dir)
 
+    @gin.configurable(denylist=['filepath'])
     def read_flac(self, filepath: str, preprocess: bool = True) -> dict:
         # Check if the filepath is valid
         if os.path.exists(filepath):
@@ -81,8 +84,7 @@ class AudioPreparation:
 
     def process_audio_data(self, filepath: str) -> dict:
         # Read .flac file
-        sample = self.read_flac(filepath=filepath,
-                                preprocess=True)
+        sample = self.read_flac(filepath=filepath)
 
         # Resample signal if sample rate is not equal to 16kHz
         if sample['fs'] > 0 and sample['fs'] != 16000:
@@ -91,6 +93,7 @@ class AudioPreparation:
         return sample
 
     @staticmethod
+    @gin.configurable(denylist=['sample'])
     def compute_spectrogram(sample: dict, window_length: int, overlap: int,
                             log_mel: bool = True, n_freq_components: int = 23) -> np.ndarray:
 
@@ -106,9 +109,7 @@ class AudioPreparation:
                                                      sample_rate=sample['fs'])
 
         spectrogram = spectrogram_generator.log_spectrogram(audio_signal=sample['data'],
-                                                            log=True,
-                                                            threshold=4,
-                                                            periodogram=False)
+                                                            threshold=4)
         if log_mel:
             spectrogram = spectrogram_generator.log_mel_spectrogram(spectrogram=spectrogram,
                                                                     num_filters=n_freq_components)
@@ -119,7 +120,7 @@ class AudioPreparation:
         # Prepare vocabulary for CTC loss function
         print("PREPARING VOCABULARY...")
         ctc_tokenizer = CtcTokenizer(root_dir=self.root_dir)
-        vocabulary, ctc_decoder = ctc_tokenizer.prepare_vocabulary(remove_punctuation=False)
+        vocabulary, ctc_decoder = ctc_tokenizer.prepare_vocabulary()
 
         # Create vocabulary and decoder dataframe
         vocabulary_dataframe = pd.DataFrame([(letter, index) for letter, index in vocabulary.items()],
@@ -146,11 +147,9 @@ class AudioPreparation:
                             # Load and preprocess .flac file
                             data = self.process_audio_data(filepath=filepath)
                             # Generate spectrogram
-                            spectrogram = self.compute_spectrogram(sample=data,
-                                                                   window_length=25,
-                                                                   overlap=10,
-                                                                   log_mel=True,
-                                                                   n_freq_components=23)
+                            spectrogram = self.compute_spectrogram(sample=data)
+
+                            # Convert spectrogram into Image object
                             spectrogram = spec2img(spectrogram)
                             spectrogram.save(os.path.join(self.database_dir, filename) + ".png")
 
