@@ -10,7 +10,7 @@ from utils.trainingUtils import load_vocabulary
 from utils.trainingUtils import set_seed
 from tqdm import tqdm
 from torch.utils.tensorboard import SummaryWriter
-from early_stopping import EarlyStopping
+from procedures.early_stopping import EarlyStopping
 
 
 class BaselineTraining:
