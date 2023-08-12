@@ -15,10 +15,17 @@ from utils.audioUtils import spec2img
 @gin.configurable
 class AudioPreparation:
 
-    def __init__(self, root_dir: str, database_dir: str, labels_dir: str):
+    def __init__(self, root_dir: str, database_dir: str, labels_dir: str, vocabulary_name: str, decoder_name: str,
+                 dataset_name: str, dataset_dict_name: str) -> None:
         self.root_dir = root_dir  # Audio-dataset directory
         self.database_dir = database_dir
         self.labels_dir = labels_dir
+
+        # Variables for attribute to be created
+        self.vocabulary_name = vocabulary_name
+        self.decoder_name = decoder_name
+        self.dataset_name = dataset_name
+        self.dataset_dict_name = dataset_dict_name
 
         if not os.path.exists(self.database_dir):
             os.mkdir(self.database_dir)
@@ -128,8 +135,8 @@ class AudioPreparation:
         decoder_dataframe = pd.DataFrame([(index, letter) for index, letter in ctc_decoder.items()],
                                          columns=['Index', 'Character'])
         # Write dataframe to .feather file
-        feather.write_dataframe(vocabulary_dataframe, os.path.join(self.labels_dir, 'feather_vocab.feather'))
-        feather.write_dataframe(decoder_dataframe, os.path.join(self.labels_dir, 'feather_decoder.feather'))
+        feather.write_dataframe(vocabulary_dataframe, os.path.join(self.labels_dir, self.vocabulary_name + '.feather'))
+        feather.write_dataframe(decoder_dataframe, os.path.join(self.labels_dir, self.decoder_name + '.feather'))
 
         # Prepare empty dictionary for spectrogram and label pairs
         print("GENERATING DATASET...")
@@ -169,10 +176,10 @@ class AudioPreparation:
         dataset_dataframe = pd.DataFrame([(spec, token) for spec, token in dataset_dictionary.items()],
                                          columns=['Spectrogram', 'Transcription'])
         # Save the DataFrame to a CSV file
-        dataset_dataframe.to_csv(os.path.join(self.labels_dir, 'dataset_dataframe.csv'), index=False)
+        dataset_dataframe.to_csv(os.path.join(self.labels_dir, self.dataset_name + '.csv'), index=False)
 
         # Save the DataFrame to a feather file
-        feather.write_dataframe(dataset_dataframe, os.path.join(self.labels_dir, 'feather_dataset.feather'))
+        feather.write_dataframe(dataset_dataframe, os.path.join(self.labels_dir, self.dataset_name + '.feather'))
 
         # Save dictionary as .npy file:
-        np.save(os.path.join(self.labels_dir, 'dataset_dictionary.npy'), dataset_dictionary)
+        np.save(os.path.join(self.labels_dir, self.dataset_dict_name + '.npy'), dataset_dictionary)

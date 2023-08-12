@@ -3,10 +3,20 @@ ROOT_DIR = "<PATH-TO-RAW-AUDIO-DATABASE>"
 DATABASE_DIR = "<GENERATED-DATASET-DESTINATION-PATH>"
 LABELS_DIR = "<GENERATED-LABELS-DESTINATION-PATH>"
 
+VOCABULARY_NAME = "<NAME-OF-CREATED-VOCABULARY>"
+DECODER_NAME = "<NAME-OF-CREATED-DECODER>"
+DATASET_NAME = "<NAME-OF-DATASET-TO-BE-CREATED>"
+DATASET_DICT_NAME "<NAME-OF-DATASET-NAME-TO-BE-CREATED>"
+
 # ====== AUDIO PREPARATION ======
 AudioPreparation.root_dir = %ROOT_DIR
 AudioPreparation.database_dir = %DATABASE_DIR
 AudioPreparation.labels_dir = %LABELS_DIR
+
+AudioPreparation.vocabulary_name = %VOCABULARY_NAME
+AudioPreparation.decoder_name = %DECODER_NAME
+AudioPreparation.dataset_name = %DATASET_NAME
+AudioPreparation.dataset_dict_name = %DATASET_DICT_NAME
 
 # READ FLAC FILE - PREPROCESS
 read_flac.preprocess = True
