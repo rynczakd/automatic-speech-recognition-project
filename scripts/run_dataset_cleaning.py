@@ -7,4 +7,3 @@ if __name__ == '__main__':
     print("CONFIG PARSED. STARTING DATASET CLEANING...")
     dataset_analysis.remove_outliers()
     print("PROCESS FINISHED WITHOUT ERRORS")
-    

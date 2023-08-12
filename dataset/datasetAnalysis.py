@@ -19,7 +19,7 @@ class DatasetAnalysis:
         self.dataset_name = dataset_name
         self.vocabulary = load_vocabulary(vocabulary_path)
         self.cleaned_dataset_name = cleaned_dataset_name
-        self.dataset_path = os.path.join(self.labels_path, self.dataset_name)
+        self.dataset_path = os.path.join(self.labels_path, self.dataset_name + '.feather')
 
         # Basing on the PyTorch CTC Loss documentation:
         # In order to use CuDNN, the following must be satisfied:
@@ -98,4 +98,4 @@ class DatasetAnalysis:
         clean_dataset = self.dataset_samples[~self.dataset_samples['Spectrogram'].isin(outliers)]
 
         # Save clean dataset to .feather file
-        feather.write_dataframe(clean_dataset, os.path.join(self.labels_path, self.cleaned_dataset_name))
+        feather.write_dataframe(clean_dataset, os.path.join(self.labels_path, self.cleaned_dataset_name + '.feather'))
