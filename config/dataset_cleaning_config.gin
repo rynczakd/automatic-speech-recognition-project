@@ -1,0 +1,16 @@
+# ====== DATASET CLEANING CONSTANTS ======
+#DATA_PATH = "<PATH-TO-SPECTROGRAMS-DIRECTORY>"
+#LABELS_PATH = "<PATH-TO-LABELS-DIRECTORY>"
+#DATASET_NAME = "<NAME-OF_GENERATED-DATASET-FEATHER-FILE.feather>"
+#VOCAB_PATH = "<PATH-TO-GENERATED-VOCABULARY/.VOCAB.feather>"
+#CLEANED_DATASET_NAME = "<NAME-OF-DATASET-TO-BE-CREATED.feather>"
+
+# ====== DATASET CLEANING ======
+DatasetAnalysis.data_path = %DATA_PATH
+DatasetAnalysis.labels_path = %LABELS_PATH
+DatasetAnalysis.dataset_name = %DATASET_NAME
+DatasetAnalysis.vocabulary_path = %VOCAB_PATH
+DatasetAnalysis.cleaned_dataset_name = %CLEANED_DATASET_NAME
+
+DatasetAnalysis.spec_scaling_factor = 2
+DatasetAnalysis.use_cudnn = True
