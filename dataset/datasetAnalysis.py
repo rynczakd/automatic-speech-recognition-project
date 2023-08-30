@@ -81,7 +81,6 @@ class DatasetAnalysis:
                     outliers.append(name)
         else:
             for name, sizes in spectrogram_widths.items():
-
                 if (sizes[0] < self.min_spec_width or sizes[0] > self.max_spec_width) \
                         or sizes[1] > self.max_target_length:
                     outliers.append(name)
