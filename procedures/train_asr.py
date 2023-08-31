@@ -1,9 +1,12 @@
+import gin
 import config
 import os
 import torch
+import torch.nn as nn
+from typing import Any
+from typing import Callable
 from torch.utils.data import DataLoader
 from dataset.spectrogramDataset import SpectrogramDataset
-from model.speech_recognition import SpeechRecognition
 from model.ctc_wrapper import CTCLoss
 from utils.trainingUtils import load_and_split_dataset
 from utils.trainingUtils import load_vocabulary
@@ -12,30 +15,33 @@ from tqdm import tqdm
 from torch.utils.tensorboard import SummaryWriter
 from procedures.early_stopping import EarlyStopping
 
-
+# TODO: Prepare gin.configurable for whole training process and clean up the code
+@gin.configurable
 class BaselineTraining:
-    def __init__(self, random_seed: bool = True) -> None:
-        # TODO: Change config file to .json or use argparse for training preparation
-        # Device configuration
-        self.device = torch.device(config.DEVICE if torch.cuda.is_available() else "cpu")
-        # Initialize the procedure
-        self.random_seed = random_seed
+    def __init__(self,
+                 dataset_filepath: str,
+                 database_path: str,
+                 vocabulary_path: str,
+                 validation_split: int,
+                 subset_random_state: Any,
+                 subset_shuffle: bool,
+                 model: Callable[..., nn.Module],
+                 model_name: str,
+                 results_path: str,
+                 batch_size: int,
+                 num_epochs: int,
+                 device: str,
+                 random_seed: bool = True) -> None:
 
         # DATA
-        self.train_dataset, self.validation_dataset = self._create_subsets(data_feather=config.DATA_FEATHER,
-                                                                           root_dir=config.ROOT_DIR,
-                                                                           vocabulary_dir=config.VOCABULARY_DIR,
-                                                                           validation_split=config.VALIDATION_SPLIT,
-                                                                           random_seed=config.RANDOM_SEED,
-                                                                           shuffle_subset=config.SHUFFLE_SUBSET)
-        self.batch_size = config.BATCH_SIZE
-        self.num_epochs = config.EPOCHS
-
-        if random_seed:
-            set_seed(self.random_seed)
-
+        self.train_dataset, self.validation_dataset = self._create_subsets(data_feather=dataset_filepath,
+                                                                           root_dir=database_path,
+                                                                           vocabulary_dir=vocabulary_path,
+                                                                           validation_split=validation_split,
+                                                                           random_state=subset_random_state,
+                                                                           shuffle_subset=subset_shuffle)
         # MODEL
-        self.model_init = SpeechRecognition
+        self.model_init = model
         self.model = None
         self.criterion = CTCLoss()
         self.learning_rate = config.LEARNING_RATE
@@ -44,20 +50,28 @@ class BaselineTraining:
         self.scheduler_init = torch.optim.lr_scheduler.ReduceLROnPlateau
         self.scheduler = None
 
+        self.batch_size = batch_size
+        self.num_epochs = num_epochs
+
+        # Device configuration
+        self.device = torch.device(device if torch.cuda.is_available() else "cpu")
+        # Initialize the procedure
+        self.random_seed = random_seed
+
+        if random_seed:
+            set_seed(self.random_seed)
+
         # RESULTS
         self.checkpoint_epoch_num = 50
         self.total_iters = 0
         self.checkpoint = dict()
-        self.model_name = config.MODEL_NAME
+        self.model_name = model_name
         self.results_dir = config.RESULTS_DIR
         self.models_path = os.path.join(self.results_dir, 'models', self.model_name)
         os.makedirs(self.models_path, exist_ok=True)
 
         self.writer = SummaryWriter(log_dir=config.LOG_DIR)
-        self.early_stopping = EarlyStopping(patience=30,
-                                            verbose=True,
-                                            delta=1.0,
-                                            log_path=self.models_path,
+        self.early_stopping = EarlyStopping(log_path=self.models_path,
                                             model_name=self.model_name)
 
     @staticmethod
@@ -65,13 +79,13 @@ class BaselineTraining:
                         root_dir: str,
                         vocabulary_dir: str,
                         validation_split: float = 0.2,
-                        random_seed: int = None,
+                        random_state: int = None,
                         shuffle_subset: bool = True) -> (SpectrogramDataset, SpectrogramDataset):
 
         # Load train and validation subset from .feather file:
         train_subset, validation_subset = load_and_split_dataset(data_feather=data_feather,
                                                                  test_size=validation_split,
-                                                                 random_state=random_seed,
+                                                                 random_state=random_state,
                                                                  shuffle=shuffle_subset)
 
         # Load vocabulary once to avoid loading it in each subset

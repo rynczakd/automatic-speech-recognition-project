@@ -1,0 +1,29 @@
+# ====== ASR TRAINING - CONSTANTS ======
+DATASET_FILEPATH = "<PATH-TO-DATASET-FEATHER-FILE>"
+DATABASE_PATH = "<PATH-TO-GENERATED-SPECTROGRAMS-DIRECTORY>"
+VOCABULARY_PATH = "<PATH-TO-GENERATED-CTC-VOCABULARY>"
+MODEL_NAME = "<NAME-OF-ASR-MODEL>"
+
+# ====== ASR TRAINING - SETUP ======
+BaselineTraining.dataset_filepath = %DATASET_FILEPATH
+BaselineTraining.database_path = %DATABASE_PATH
+BaselineTraining.vocabulary_path = %VOCABULARY_PATH
+BaselineTraining.validation_split = 0.2
+BaselineTraining.subset_random_state = 42
+BaselineTraining.subset_shuffle = True
+
+# ====== ASR TRAINING - MODEL ======
+BaselineTraining.model = @SpeechRecognition
+BaselineTraining.model_name = %MODEL_NAME
+BaselineTraining.batch_size = 64
+BaselineTraining.num_epochs = 400
+BaselineTraining.device = "cuda"
+
+# ====== CTC LOSS WRAPPER ======
+CTCLoss.blank = 0
+CTCLoss.pack_predictions = False
+
+# ====== EARLY STOPPING ======
+EarlyStopping.patience = 30
+EarlyStopping.verbose = True
+EarlyStopping.delta = 1.0

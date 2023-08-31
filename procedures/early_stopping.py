@@ -1,10 +1,13 @@
 import os
+
+import gin
 import torch
 import numpy as np
 
 
+@gin.configurable(denylist=['log_path', 'model_name'])
 class EarlyStopping:
-    def __init__(self, patience, verbose, delta, log_path, model_name):
+    def __init__(self, patience: int, verbose: bool, delta: float, log_path: str, model_name: str) -> None:
         self.patience = patience
         self.verbose = verbose
         self.delta = delta

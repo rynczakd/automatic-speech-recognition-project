@@ -1,3 +1,4 @@
+import gin
 import config
 import torch
 from torch import nn
@@ -8,6 +9,7 @@ from utils.modelUtils import mask_to_lengths
 from utils.modelUtils import get_conv_output_widths
 
 
+@gin.configurable
 class SpeechRecognition(nn.Module):
     def __init__(self) -> None:
         super(SpeechRecognition, self).__init__()
