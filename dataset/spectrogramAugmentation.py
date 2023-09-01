@@ -80,4 +80,4 @@ class ToTensor:
         spectrograms, tokens, padding_mask, token_mask = batch
         return torch.from_numpy(spectrograms), torch.from_numpy(tokens), torch.from_numpy(padding_mask), \
             torch.from_numpy(token_mask)
-
+    
