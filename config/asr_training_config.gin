@@ -3,27 +3,47 @@ DATASET_FILEPATH = "<PATH-TO-DATASET-FEATHER-FILE>"
 DATABASE_PATH = "<PATH-TO-GENERATED-SPECTROGRAMS-DIRECTORY>"
 VOCABULARY_PATH = "<PATH-TO-GENERATED-CTC-VOCABULARY>"
 MODEL_NAME = "<NAME-OF-ASR-MODEL>"
+RESULTS_DIR = "<PATH-TO-RESULTS>"
+LOGGING_DIR = "<PATH-TO-LOGS>"
 
-# ====== ASR TRAINING - SETUP ======
+# ====== ASR TRAINING - DEVICE CONFIGURATION ======
+BaselineTraining.device = "cuda"
+BaselineTraining.random_seed = None
+
+# ====== ASR TRAINING - DATASET & DATALOADER ======
 BaselineTraining.dataset_filepath = %DATASET_FILEPATH
 BaselineTraining.database_path = %DATABASE_PATH
 BaselineTraining.vocabulary_path = %VOCABULARY_PATH
 BaselineTraining.validation_split = 0.2
 BaselineTraining.subset_random_state = 42
 BaselineTraining.subset_shuffle = True
+BaselineTraining.batch_size = 64
 
-# ====== ASR TRAINING - MODEL ======
+# ====== ASR TRAINING - MODEL PART ======
 BaselineTraining.model = @SpeechRecognition
 BaselineTraining.model_name = %MODEL_NAME
-BaselineTraining.batch_size = 64
-BaselineTraining.num_epochs = 400
-BaselineTraining.device = "cuda"
 
-# ====== CTC LOSS WRAPPER ======
+# ====== ASR TRAINING - TRAINING LOOP ======
+BaselineTraining.num_epochs = 400
+BaselineTraining.checkpoint_epoch_num = 50
+
+# ====== CTC LOSS WRAPPER AND OPTIMIZER ======
 CTCLoss.blank = 0
 CTCLoss.pack_predictions = False
+AdamW.lr = 0.0003
+AdamW.weight_decay = 0.01
+
+# ====== ASR TRAINING - PER-EPOCH ACTIVITY ======
+ReduceLROnPlateau.mode = 'min'
+ReduceLROnPlateau.factor = 0.1
+ReduceLROnPlateau.patience = 10
+ReduceLROnPlateau.verbose = True
 
 # ====== EARLY STOPPING ======
 EarlyStopping.patience = 30
 EarlyStopping.verbose = True
 EarlyStopping.delta = 1.0
+
+# ====== ASR TRAINING - RESULTS ======
+BaselineTraining.results_dir = %RESULTS_DIR
+BaselineTraining.logging_dir = %LOGGING_DIR

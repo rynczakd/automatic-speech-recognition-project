@@ -1,10 +1,10 @@
 import gin
-import config
 import os
 import torch
 import torch.nn as nn
 from typing import Any
 from typing import Callable
+from typing import Optional
 from torch.utils.data import DataLoader
 from dataset.spectrogramDataset import SpectrogramDataset
 from model.ctc_wrapper import CTCLoss
@@ -15,62 +15,70 @@ from tqdm import tqdm
 from torch.utils.tensorboard import SummaryWriter
 from procedures.early_stopping import EarlyStopping
 
-# TODO: Prepare gin.configurable for whole training process and clean up the code
+gin.external_configurable(torch.optim.AdamW, module='torch.optim')
+gin.external_configurable(torch.optim.lr_scheduler.ReduceLROnPlateau, module='torch.optim.lr_scheduler')
+
+
 @gin.configurable
 class BaselineTraining:
     def __init__(self,
-                 dataset_filepath: str,
+                 device: str,  # DEVICE CONFIGURATION
+                 random_seed: Optional[int],
+                 dataset_filepath: str,  # DATASET/DATALOADER PART
                  database_path: str,
                  vocabulary_path: str,
                  validation_split: int,
                  subset_random_state: Any,
                  subset_shuffle: bool,
-                 model: Callable[..., nn.Module],
-                 model_name: str,
-                 results_path: str,
                  batch_size: int,
-                 num_epochs: int,
-                 device: str,
-                 random_seed: bool = True) -> None:
+                 model: Callable[..., nn.Module],  # MODEL PART
+                 model_name: str,
+                 num_epochs: int,  # TRAINING PARAMETERS
+                 checkpoint_epoch_num: int,
+                 results_dir: str,  # RESULTS
+                 logging_dir: str) -> None:
 
-        # DATA
+        # DEVICE CONFIGURATION AND PROCEDURE INITIALIZATION
+        self.device = torch.device(device if torch.cuda.is_available() else "cpu")
+
+        if random_seed:
+            set_seed(self.random_seed)
+
+        # DATASET/DATALOADER PARAMETERS
         self.train_dataset, self.validation_dataset = self._create_subsets(data_feather=dataset_filepath,
                                                                            root_dir=database_path,
                                                                            vocabulary_dir=vocabulary_path,
                                                                            validation_split=validation_split,
                                                                            random_state=subset_random_state,
                                                                            shuffle_subset=subset_shuffle)
+        self.batch_size = batch_size
+
         # MODEL
         self.model_init = model
         self.model = None
+        self.model_name = model_name
+
+        # CRITERION AND OPTIMIZER
         self.criterion = CTCLoss()
-        self.learning_rate = config.LEARNING_RATE
         self.optimizer_init = torch.optim.AdamW
         self.optimizer = None
+
+        # TRAINING LOOP
+        self.num_epochs = num_epochs
+        self.checkpoint_epoch_num = checkpoint_epoch_num
+        self.total_iters = 0
+        self.checkpoint = dict()
+
+        # PER-EPOCH ACTIVITY
         self.scheduler_init = torch.optim.lr_scheduler.ReduceLROnPlateau
         self.scheduler = None
 
-        self.batch_size = batch_size
-        self.num_epochs = num_epochs
-
-        # Device configuration
-        self.device = torch.device(device if torch.cuda.is_available() else "cpu")
-        # Initialize the procedure
-        self.random_seed = random_seed
-
-        if random_seed:
-            set_seed(self.random_seed)
-
         # RESULTS
-        self.checkpoint_epoch_num = 50
-        self.total_iters = 0
-        self.checkpoint = dict()
-        self.model_name = model_name
-        self.results_dir = config.RESULTS_DIR
+        self.results_dir = results_dir
         self.models_path = os.path.join(self.results_dir, 'models', self.model_name)
         os.makedirs(self.models_path, exist_ok=True)
-
-        self.writer = SummaryWriter(log_dir=config.LOG_DIR)
+        self.logging_dir = logging_dir
+        self.writer = SummaryWriter(log_dir=self.logging_dir)
         self.early_stopping = EarlyStopping(log_path=self.models_path,
                                             model_name=self.model_name)
 
@@ -107,20 +115,14 @@ class BaselineTraining:
     def train(self):
         # Configure model and optimizer
         self.model = self.model_init().to(self.device)
-        self.optimizer = self.optimizer_init(params=self.model.parameters(),
-                                             lr=config.LEARNING_RATE,
-                                             weight_decay=config.WEIGHT_DECAY)
-        self.scheduler = self.scheduler_init(optimizer=self.optimizer,
-                                             mode="min",
-                                             factor=0.1,
-                                             patience=10,
-                                             verbose=True)
+        self.optimizer = self.optimizer_init(params=self.model.parameters())
+        self.scheduler = self.scheduler_init(optimizer=self.optimizer)
 
         # Prepare Train and Validation loader
         train_loader = DataLoader(dataset=self.train_dataset,
                                   batch_size=self.batch_size,
                                   collate_fn=SpectrogramDataset.spectrogram_collate,
-                                  shuffle=config.SHUFFLE_DATASET)
+                                  shuffle=True)
 
         validation_loader = DataLoader(dataset=self.validation_dataset,
                                        batch_size=self.batch_size,
