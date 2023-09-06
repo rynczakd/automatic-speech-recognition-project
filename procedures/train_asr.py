@@ -42,7 +42,7 @@ class BaselineTraining:
         self.device = torch.device(device if torch.cuda.is_available() else "cpu")
 
         if random_seed:
-            set_seed(self.random_seed)
+            set_seed(random_seed)
 
         # DATASET/DATALOADER PARAMETERS
         self.train_dataset, self.validation_dataset = self._create_subsets(data_feather=dataset_filepath,

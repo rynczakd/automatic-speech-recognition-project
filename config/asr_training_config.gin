@@ -29,7 +29,31 @@ FrequencyMasking.num_time_masks = 1
 FrequencyMasking.zero_masking = True
 
 # ====== ASR TRAINING - MODEL PART ======
+# SPEECH RECOGNITION MODEL
 BaselineTraining.model = @SpeechRecognition
+SpeechRecognition.feature_extractor = @FeatureExtractor
+
+# FEATURE EXTRACTOR
+FeatureExtractor.reduce_mean = False
+_create_fully_connected.input_size = 6144
+_create_fully_connected.output_dim = 512
+_create_fully_connected.hidden_size = 4096
+_create_fully_connected.num_layers = 3
+_create_fully_connected.dropout = 0.2
+
+# GRU
+_create_gru.input_size = 512
+_create_gru.hidden_size = 256
+_create_gru.arch = nn.GRU
+
+_init_hidden_state.random_init = False
+
+# CLASSIFIER
+_create_classifier.input_size = 512
+_create_classifier.output_size = 29
+_create_classifier.hidden_size = 128
+_create_classifier.num_layers = 2
+
 BaselineTraining.model_name = %MODEL_NAME
 
 # ====== ASR TRAINING - TRAINING LOOP ======

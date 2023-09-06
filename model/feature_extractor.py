@@ -1,8 +1,10 @@
+import gin
 import torch
 from torch import nn
 import torch.nn.functional as F
 
 
+@gin.configurable
 class FeatureExtractor(nn.Module):
     def __init__(self, reduce_mean: bool = False):
         super(FeatureExtractor, self).__init__()
@@ -43,6 +45,7 @@ class FeatureExtractor(nn.Module):
             self.dense = self._create_fully_connected()
 
     @staticmethod
+    @gin.configurable
     def _create_fully_connected(input_size: int = 6144,
                                 output_dim: int = 512,
                                 hidden_size: int = 4096,
