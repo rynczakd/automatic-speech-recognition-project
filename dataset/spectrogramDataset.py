@@ -72,8 +72,8 @@ class SpectrogramDataset(Dataset):
 
         # Apply custom SpecAugment
         if spec_augment:
-            time_masking = TimeMasking(max_time_mask_percent=0.1, num_time_masks=1, zero_masking=True)
-            freq_masking = FrequencyMasking(max_freq_mask_percent=0.15, num_time_masks=1, zero_masking=True)
+            time_masking = TimeMasking()
+            freq_masking = FrequencyMasking()
 
             spectrograms = time_masking(spectrograms, spectrograms_widths)
             spectrograms = freq_masking(spectrograms)

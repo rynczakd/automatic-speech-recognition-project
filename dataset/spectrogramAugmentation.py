@@ -1,10 +1,12 @@
 # Custom SpecAugment for padded spectrograms
 
+import gin
 import torch
 import random
 import numpy as np
 
 
+@gin.configurable
 class TimeMasking:
     def __init__(self,
                  max_time_mask_percent: float,
@@ -39,6 +41,7 @@ class TimeMasking:
         return spectrograms
 
 
+@gin.configurable
 class FrequencyMasking:
     def __init__(self,
                  max_freq_mask_percent: float,

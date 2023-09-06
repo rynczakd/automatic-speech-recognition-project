@@ -19,6 +19,15 @@ BaselineTraining.subset_random_state = 42
 BaselineTraining.subset_shuffle = True
 BaselineTraining.batch_size = 64
 
+# ====== SPEC AUGMENTATION CONFIG ======
+TimeMasking.max_time_mask_percent = 0.1
+TimeMasking.num_time_masks = 1
+TimeMasking.zero_masking = True
+
+FrequencyMasking.max_freq_mask_percent = 0.15
+FrequencyMasking.num_time_masks = 1
+FrequencyMasking.zero_masking = True
+
 # ====== ASR TRAINING - MODEL PART ======
 BaselineTraining.model = @SpeechRecognition
 BaselineTraining.model_name = %MODEL_NAME
