@@ -20,7 +20,7 @@ class SpeechRecognition(nn.Module):
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     @staticmethod
-    @gin.configurable
+    @gin.configurable(denylist='arch')
     def _create_gru(input_size: int = 512,
                     hidden_size: int = 256,
                     arch: nn.Module = nn.GRU) -> nn.Module:
