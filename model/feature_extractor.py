@@ -56,33 +56,33 @@ class FeatureExtractor(nn.Module):
         if num_layers == 1:
             layers = [nn.Linear(in_features=input_size, out_features=output_dim),
                       nn.LayerNorm(normalized_shape=output_dim),
-                      nn.GELU()]
+                      nn.ReLU()]
 
             return nn.Sequential(*layers)
 
         layers = [nn.Linear(in_features=input_size, out_features=hidden_size),
                   nn.LayerNorm(normalized_shape=hidden_size),
-                  nn.GELU(),
+                  nn.ReLU(),
                   nn.Dropout(p=dropout)]
 
         for _ in range(num_layers - 2):
             layers.extend([nn.Linear(in_features=hidden_size, out_features=hidden_size),
                            nn.LayerNorm(normalized_shape=hidden_size),
-                           nn.GELU(),
+                           nn.ReLU(),
                            nn.Dropout(p=dropout)])
 
         layers.extend([nn.Linear(in_features=hidden_size, out_features=output_dim),
                        nn.LayerNorm(normalized_shape=output_dim),
-                       nn.GELU()])
+                       nn.ReLU()])
 
         return nn.Sequential(*layers)
 
     def forward(self, x):
         # Define forward method for Feature Extractor
-        x = self.pool(F.gelu(self.conv1(x)))
-        x = F.gelu(self.conv2(x))
-        x = F.gelu(self.conv3(x))
-        x = F.gelu(self.conv4(x))
+        x = self.pool(F.relu(self.conv1(x)))
+        x = F.relu(self.conv2(x))
+        x = F.relu(self.conv3(x))
+        x = F.relu(self.conv4(x))
 
         # Perform averaging of feature maps over Channel dimension
         if self.reduce_mean:
