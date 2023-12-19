@@ -235,7 +235,7 @@ class BaselineTraining:
                 # Turn on the scheduler
                 self.scheduler.step(validation_losses[-1])
 
-                # Save metrics using TensorBoard
+                # Save metrics using TensorBoard - create separate scalars for training and validation
                 self.train_writer.add_scalar('Avg Loss', train_losses[-1], epoch + 1)
                 self.validation_writer.add_scalar('Avg Loss', validation_losses[-1], epoch + 1)
                
