@@ -217,6 +217,11 @@ class BaselineTraining:
                 # Turn on the scheduler
                 self.scheduler.step(validation_losses[-1])
 
+                # Save metrics using TensorBoard
+                self.writer.add_scalars("Training vs. Validation Loss",
+                                        {"Training": train_losses[-1],
+                                         "Validation": validation_losses[-1]}, epoch + 1)
+
                 # Call Early Stopping
                 self.early_stopping(epoch=epoch,
                                     val_loss=validation_losses[-1],
@@ -228,11 +233,6 @@ class BaselineTraining:
 
                 # Update TQDM progress bar with per-epoch train and validation loss
                 progress.set_postfix({"train_loss ": train_losses[-1], "val_loss ": validation_losses[-1]})
-
-                # Save metrics using TensorBoard
-                self.writer.add_scalars("Training vs. Validation Loss",
-                                        {"Training": train_losses[-1],
-                                         "Validation": validation_losses[-1]}, epoch + 1)
 
         # Close SummaryWriter after training
         self.writer.close()
