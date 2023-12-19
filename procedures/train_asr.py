@@ -77,8 +77,22 @@ class BaselineTraining:
         self.results_dir = results_dir
         self.models_path = os.path.join(self.results_dir, 'models', self.model_name)
         os.makedirs(self.models_path, exist_ok=True)
+
+        # LOGGING
         self.logging_dir = logging_dir
-        self.writer = SummaryWriter(log_dir=self.logging_dir)
+
+        # Training metrics
+        self.logging_train_dir = os.path.join(self.logging_dir, 'training-metrics')
+        os.makedirs(self.logging_train_dir, exist_ok=True)
+        # Train writer
+        self.train_writer = SummaryWriter(log_dir=self.logging_train_dir)
+
+        # Validation metrics
+        self.logging_validation_dir = os.path.join(self.logging_dir, 'validation-metrics')
+        os.makedirs(self.logging_validation_dir, exist_ok=True)
+        # Validation writer
+        self.validation_writer = SummaryWriter(log_dir=self.logging_validation_dir)
+        
         self.early_stopping = EarlyStopping(log_path=self.models_path,
                                             model_name=self.model_name)
 
@@ -156,6 +170,10 @@ class BaselineTraining:
                     # Move spectrograms and tokens tensors to the default device
                     spectrograms, tokens = spectrograms.to(self.device), tokens.to(self.device)
 
+                    # Add Model-Graph to TensorBoard
+                    if epoch == 0 and i == 0:
+                        self.train_writer.add_graph(model=self.model, input_to_model=(batch[0], batch[2]), verbose=False)
+
                     # Zero gradients for every batch
                     self.optimizer.zero_grad()
 
@@ -179,7 +197,7 @@ class BaselineTraining:
                     progress.set_postfix(ordered_dict={"train_loss - running ": running_loss})
 
                     # Add loss for current step
-                    self.writer.add_scalar('Training loss', loss.item(), self.total_iters)
+                    self.train_writer.add_scalar(f'Training loss/batch', loss.item(), self.total_iters)
                     self.total_iters += 1
 
                     # Update progress bar
@@ -218,10 +236,9 @@ class BaselineTraining:
                 self.scheduler.step(validation_losses[-1])
 
                 # Save metrics using TensorBoard
-                self.writer.add_scalars("Training vs. Validation Loss",
-                                        {"Training": train_losses[-1],
-                                         "Validation": validation_losses[-1]}, epoch + 1)
-
+                self.train_writer.add_scalar('Avg Loss', train_losses[-1], epoch + 1)
+                self.validation_writer.add_scalar('Avg Loss', validation_losses[-1], epoch + 1)
+               
                 # Call Early Stopping
                 self.early_stopping(epoch=epoch,
                                     val_loss=validation_losses[-1],
@@ -235,4 +252,5 @@ class BaselineTraining:
                 progress.set_postfix({"train_loss ": train_losses[-1], "val_loss ": validation_losses[-1]})
 
         # Close SummaryWriter after training
-        self.writer.close()
+        self.train_writer.close()
+        self.validation_writer.close()

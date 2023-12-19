@@ -46,7 +46,6 @@ _create_fully_connected.dropout = 0.2
 # GRU
 _create_gru.input_size = 512
 _create_gru.hidden_size = 256
-_create_gru.arch = nn.GRU
 
 _init_hidden_state.random_init = False
 
