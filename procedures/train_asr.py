@@ -170,9 +170,14 @@ class BaselineTraining:
                     # Move spectrograms and tokens tensors to the default device
                     spectrograms, tokens = spectrograms.to(self.device), tokens.to(self.device)
 
-                    # Add Model-Graph to TensorBoard
-                    if epoch == 0 and i == 0:
-                        self.train_writer.add_graph(model=self.model, input_to_model=(batch[0], batch[2]), verbose=False)
+                    # Add example image (spectrogram) to TensorBoard for data-monitoring purposes
+                    if i == 0:
+                        self.train_writer.add_image("Spec. input", spectrograms[0], global_step=epoch + 1)
+                        # Add Model-Graph to TensorBoard
+                        if epoch == 0:
+                            self.train_writer.add_graph(model=self.model,
+                                                        input_to_model=[batch[0], batch[2]],
+                                                        verbose=False)
 
                     # Zero gradients for every batch
                     self.optimizer.zero_grad()
