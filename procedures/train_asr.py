@@ -11,9 +11,11 @@ from model.ctc_wrapper import CTCLoss
 from utils.trainingUtils import load_and_split_dataset
 from utils.trainingUtils import load_vocabulary
 from utils.trainingUtils import set_seed
+from utils.trainingUtils import model_weights_histograms
 from tqdm import tqdm
 from torch.utils.tensorboard import SummaryWriter
 from procedures.early_stopping import EarlyStopping
+
 
 gin.external_configurable(torch.optim.AdamW, module='torch.optim')
 gin.external_configurable(torch.optim.lr_scheduler.ReduceLROnPlateau, module='torch.optim.lr_scheduler')
@@ -149,6 +151,9 @@ class BaselineTraining:
         # Main training loop
         for epoch in range(self.num_epochs):
             print("Epoch {}/{}".format(epoch + 1, self.num_epochs))
+
+            # Add model parameters to TensorBoard-logger (histograms)
+            model_weights_histograms(writer=self.train_writer, step=epoch + 1, model=self.model)
 
             # Halt training and point to the first place where something went wrong
             torch.autograd.set_detect_anomaly(True)
