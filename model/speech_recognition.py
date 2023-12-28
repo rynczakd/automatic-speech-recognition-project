@@ -17,7 +17,7 @@ class SpeechRecognition(nn.Module):
         self.feature_extractor = feature_extractor()
         self.gru = self._create_gru()
         self.ctc_encoder = self._create_classifier()
-        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
     @staticmethod
     @gin.configurable(denylist=['arch'])
@@ -78,7 +78,7 @@ class SpeechRecognition(nn.Module):
         x = self.feature_extractor(input_data)
 
         # Prepare data for RNN (GRU) Neural Network
-        x = pack_padded_sequence(input=x, lengths=feature_lengths, batch_first=True, enforce_sorted=True)
+        x = pack_padded_sequence(input=x, lengths=feature_lengths.to('cpu'), batch_first=True, enforce_sorted=True)
 
         # Initialize hidden state for GRU
         h0 = self._init_hidden_state(batch_size=input_data.shape[0], random_init=False).to(self.device)

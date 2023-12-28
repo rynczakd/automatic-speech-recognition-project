@@ -173,7 +173,9 @@ class BaselineTraining:
                     # Get samples from single batch
                     spectrograms, tokens, padding_mask, token_mask = batch
                     # Move spectrograms and tokens tensors to the default device
-                    spectrograms, tokens = spectrograms.to(self.device), tokens.to(self.device)
+                    spectrograms, tokens, padding_mask, token_mask = \
+                        spectrograms.to(self.device), tokens.to(self.device), \
+                        padding_mask.to(self.device), token_mask.to(self.device)
 
                     # Add example image (spectrogram) to TensorBoard for data-monitoring purposes
                     if i == 0:
@@ -181,7 +183,8 @@ class BaselineTraining:
                         # Add Model-Graph to TensorBoard
                         if epoch == 0:
                             self.train_writer.add_graph(model=self.model,
-                                                        input_to_model=[batch[0], batch[2]],
+                                                        input_to_model=[batch[0].to(self.device),
+                                                                        batch[2].to(self.device)],
                                                         verbose=False)
 
                     # Zero gradients for every batch

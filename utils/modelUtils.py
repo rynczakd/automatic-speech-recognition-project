@@ -35,7 +35,7 @@ def get_conv_output_widths(input_widths: torch.Tensor, conv_parameters: dict = N
         kernel_size, stride, padding = conv_cfg['kernel_size'], conv_cfg['stride'], conv_cfg['padding']
         input_widths = torch.floor(((input_widths + 2 * padding[1] - (kernel_size[1] - 1) - 1) / stride[1]) + 1)
 
-    return input_widths.type(torch.float64)
+    return input_widths.type(torch.int64)
 
 
 def token_mask_to_lengths(token_mask: torch.Tensor) -> torch.Tensor:

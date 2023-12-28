@@ -9,7 +9,7 @@ RESULTS_DIR = "<PATH-TO-RESULTS>"
 LOGGING_DIR = "<PATH-TO-LOGS>"
 
 # ====== ASR TRAINING - DEVICE CONFIGURATION ======
-BaselineTraining.device = "cuda"
+BaselineTraining.device = "cuda:0"
 BaselineTraining.random_seed = None
 
 # ====== ASR TRAINING - DATASET & DATALOADER ======
@@ -19,7 +19,7 @@ BaselineTraining.vocabulary_path = %VOCABULARY_PATH
 BaselineTraining.validation_split = 0.2
 BaselineTraining.subset_random_state = 42
 BaselineTraining.subset_shuffle = True
-BaselineTraining.batch_size = 64
+BaselineTraining.batch_size = 16
 
 # ====== SPEC AUGMENTATION CONFIG ======
 TimeMasking.max_time_mask_percent = 0.1
