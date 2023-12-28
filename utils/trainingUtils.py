@@ -5,7 +5,6 @@ import random
 import numpy as np
 import pandas as pd
 from sklearn.model_selection import train_test_split
-from torch.utils.tensorboard import SummaryWriter
 
 
 def load_and_split_dataset(data_feather: str,
@@ -34,14 +33,3 @@ def set_seed(seed: int = 42) -> None:
     random.seed(seed)  # Python seed
     np.random.seed(seed)  # NumPy
     torch.random.manual_seed(seed)  # PyTorch
-
-
-def model_weights_histograms(writer: SummaryWriter, step: int, model: torch.nn.Module) -> None:
-    # Iterate over all model parameters
-    for name, parameter in model.named_parameters():
-        # Extract layer name and flattened weights
-        tag = name.lower()
-        flattened_weights = parameter.data.flatten()
-
-        # Save a histogram of model weights
-        writer.add_histogram(tag=tag, values=flattened_weights, global_step=step, bins='tensorflow')

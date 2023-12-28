@@ -11,7 +11,6 @@ from model.ctc_wrapper import CTCLoss
 from utils.trainingUtils import load_and_split_dataset
 from utils.trainingUtils import load_vocabulary
 from utils.trainingUtils import set_seed
-from utils.trainingUtils import model_weights_histograms
 from tqdm import tqdm
 from torch.utils.tensorboard import SummaryWriter
 from procedures.early_stopping import EarlyStopping
@@ -53,17 +52,25 @@ class BaselineTraining:
                                                                            validation_split=validation_split,
                                                                            random_state=subset_random_state,
                                                                            shuffle_subset=subset_shuffle)
-        self.batch_size = batch_size
+
+        # Prepare Train and Validation loader
+        self.train_loader = DataLoader(dataset=self.train_dataset,
+                                       batch_size=batch_size,
+                                       collate_fn=SpectrogramDataset.spectrogram_collate,
+                                       shuffle=True)
+
+        self.validation_loader = DataLoader(dataset=self.validation_dataset,
+                                            batch_size=batch_size,
+                                            collate_fn=SpectrogramDataset.spectrogram_collate,
+                                            shuffle=False)
 
         # MODEL
-        self.model_init = model
-        self.model = None
+        self.model = model().to(self.device)
         self.model_name = model_name
 
         # CRITERION AND OPTIMIZER
         self.criterion = CTCLoss()
-        self.optimizer_init = torch.optim.AdamW
-        self.optimizer = None
+        self.optimizer = torch.optim.AdamW(params=self.model.parameters())
 
         # TRAINING LOOP
         self.num_epochs = num_epochs
@@ -72,31 +79,32 @@ class BaselineTraining:
         self.checkpoint = dict()
 
         # PER-EPOCH ACTIVITY
-        self.scheduler_init = torch.optim.lr_scheduler.ReduceLROnPlateau
-        self.scheduler = None
+        self.scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer=self.optimizer)
 
         # RESULTS
-        self.results_dir = results_dir
-        self.models_path = os.path.join(self.results_dir, 'models', self.model_name)
+        self.models_path = os.path.join(results_dir, 'models', self.model_name)
         os.makedirs(self.models_path, exist_ok=True)
 
         # LOGGING
-        self.logging_dir = logging_dir
 
         # Training metrics
-        self.logging_train_dir = os.path.join(self.logging_dir, 'training-metrics')
+        self.logging_train_dir = os.path.join(logging_dir, 'training-metrics')
         os.makedirs(self.logging_train_dir, exist_ok=True)
         # Train writer
         self.train_writer = SummaryWriter(log_dir=self.logging_train_dir)
 
         # Validation metrics
-        self.logging_validation_dir = os.path.join(self.logging_dir, 'validation-metrics')
+        self.logging_validation_dir = os.path.join(logging_dir, 'validation-metrics')
         os.makedirs(self.logging_validation_dir, exist_ok=True)
         # Validation writer
         self.validation_writer = SummaryWriter(log_dir=self.logging_validation_dir)
         
         self.early_stopping = EarlyStopping(log_path=self.models_path,
                                             model_name=self.model_name)
+
+        # Storage
+        # Define variables for training
+        self.train_losses, self.validation_losses = list(), list()
 
     @staticmethod
     def _create_subsets(data_feather: str,
@@ -128,38 +136,29 @@ class BaselineTraining:
 
         return train_dataset, validation_dataset
 
-    def train(self):
-        # Configure model and optimizer
-        self.model = self.model_init().to(self.device)
-        self.optimizer = self.optimizer_init(params=self.model.parameters())
-        self.scheduler = self.scheduler_init(optimizer=self.optimizer)
+    def _model_weights_histograms(self, step: int) -> None:
+        # Iterate over all model parameters
+        for name, parameter in self.model.named_parameters():
+            # Extract layer name and flattened weights
+            tag = name.lower()
+            flattened_weights = parameter.data.flatten()
 
-        # Prepare Train and Validation loader
-        train_loader = DataLoader(dataset=self.train_dataset,
-                                  batch_size=self.batch_size,
-                                  collate_fn=SpectrogramDataset.spectrogram_collate,
-                                  shuffle=True)
+            # Save a histogram of model weights
+            self.train_writer.add_histogram(tag=tag, values=flattened_weights, global_step=step, bins='tensorflow')
 
-        validation_loader = DataLoader(dataset=self.validation_dataset,
-                                       batch_size=self.batch_size,
-                                       collate_fn=SpectrogramDataset.spectrogram_collate,
-                                       shuffle=False)
-
-        # Define variables for training
-        train_losses, validation_losses = list(), list()
-
+    def train(self) -> None:
         # Main training loop
         for epoch in range(self.num_epochs):
             print("Epoch {}/{}".format(epoch + 1, self.num_epochs))
 
             # Add model parameters to TensorBoard-logger (histograms)
-            model_weights_histograms(writer=self.train_writer, step=epoch + 1, model=self.model)
+            self._model_weights_histograms(step=epoch + 1)
 
             # Halt training and point to the first place where something went wrong
             torch.autograd.set_detect_anomaly(True)
 
             # Prepare TQDM for visualization
-            with tqdm(total=len(train_loader), unit="batch") as progress:
+            with tqdm(total=len(self.train_loader), unit="batch") as progress:
                 progress.set_description(desc="Epoch {}".format(epoch + 1))
 
                 # Set model to training mode
@@ -169,7 +168,7 @@ class BaselineTraining:
                 running_loss = 0.
                 validation_loss = 0.
 
-                for i, batch in enumerate(train_loader):
+                for i, batch in enumerate(self.train_loader):
                     # Get samples from single batch
                     spectrograms, tokens, padding_mask, token_mask = batch
                     # Move spectrograms and tokens tensors to the default device
@@ -204,13 +203,13 @@ class BaselineTraining:
                     self.optimizer.step()
 
                     # Update the running loss - multiply by batch_size to get sum of losses from each sample
-                    running_loss += loss.item() * spectrograms.size(0)
+                    running_loss += loss.detach().item() * spectrograms.size(0)
 
                     # Update TQDM progress bar with loss metric
                     progress.set_postfix(ordered_dict={"train_loss - running ": running_loss})
 
                     # Add loss for current step
-                    self.train_writer.add_scalar(f'Training loss/batch', loss.item(), self.total_iters)
+                    self.train_writer.add_scalar(f'Training loss/batch', loss.detach().item(), self.total_iters)
                     self.total_iters += 1
 
                     # Update progress bar
@@ -230,31 +229,32 @@ class BaselineTraining:
                 # Turn off the gradients for validation
                 with torch.no_grad():
 
-                    for batch in validation_loader:
+                    for batch in self.validation_loader:
                         spectrograms, tokens, padding_mask, token_mask = batch
-                        spectrograms, tokens = spectrograms.to(self.device), tokens.to(self.device)
+                        spectrograms, tokens, padding_mask, token_mask = spectrograms.to(self.device), \
+                            tokens.to(self.device), padding_mask.to(self.device), token_mask.to(self.device)
 
                         # Make predictions for current validation batch
                         outputs = self.model(spectrograms, padding_mask)
 
                         # Calculate CTC loss in validation mode
                         loss = self.criterion(outputs, tokens, padding_mask, token_mask)
-                        validation_loss += loss.item() * spectrograms.size(0)
+                        validation_loss += loss.detach().item() * spectrograms.size(0)
 
                 # Update both train and validation losses
-                train_losses.append(running_loss / len(self.train_dataset))
-                validation_losses.append(validation_loss / len(self.validation_dataset))
+                self.train_losses.append(running_loss / len(self.train_dataset))
+                self.validation_losses.append(validation_loss / len(self.validation_dataset))
 
                 # Turn on the scheduler
-                self.scheduler.step(validation_losses[-1])
+                self.scheduler.step(self.validation_losses[-1])
 
                 # Save metrics using TensorBoard - create separate scalars for training and validation
-                self.train_writer.add_scalar('Avg Loss', train_losses[-1], epoch + 1)
-                self.validation_writer.add_scalar('Avg Loss', validation_losses[-1], epoch + 1)
+                self.train_writer.add_scalar('Avg Loss', self.train_losses[-1], epoch + 1)
+                self.validation_writer.add_scalar('Avg Loss', self.validation_losses[-1], epoch + 1)
                
                 # Call Early Stopping
                 self.early_stopping(epoch=epoch,
-                                    val_loss=validation_losses[-1],
+                                    val_loss=self.validation_losses[-1],
                                     model=self.model,
                                     optimizer=self.optimizer)
                 if self.early_stopping.early_stop:
@@ -262,7 +262,7 @@ class BaselineTraining:
                     break
 
                 # Update TQDM progress bar with per-epoch train and validation loss
-                progress.set_postfix({"train_loss ": train_losses[-1], "val_loss ": validation_losses[-1]})
+                progress.set_postfix({"train_loss ": self.train_losses[-1], "val_loss ": self.validation_losses[-1]})
 
         # Close SummaryWriter after training
         self.train_writer.close()
