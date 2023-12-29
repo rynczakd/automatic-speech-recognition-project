@@ -85,5 +85,5 @@ class SpectrogramDataset(Dataset):
 
         spectrograms = transform(spectrograms)
 
-        return spectrograms.type(torch.FloatTensor), tokens.type(torch.FloatTensor), padding_mask, token_mask
+        return spectrograms.type(torch.FloatTensor), tokens.type(torch.int32), padding_mask, token_mask
     

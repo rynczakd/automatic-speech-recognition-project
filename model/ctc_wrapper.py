@@ -29,14 +29,15 @@ class CTCLoss(nn.Module):
         predictions = predictions.permute(1, 0, 2)  # (seq_length, batch, num_classes)
 
         if self.pack_predictions:
-            predictions_lengths = torch.full(size=(batch, ), fill_value=seq_length, dtype=torch.long)
+            predictions_lengths = torch.full(size=(batch, ), fill_value=seq_length, dtype=torch.int32)
 
         else:
             spectrograms_lengths = mask_to_lengths(mask=predictions_mask)
             features_lengths = get_conv_output_widths(input_widths=spectrograms_lengths)
-            predictions_lengths = features_lengths.long()
+            predictions_lengths = features_lengths.type(torch.int32)
 
-        target_lengths = token_mask_to_lengths(targets_mask).long()
+        target_lengths = token_mask_to_lengths(targets_mask)
+        target_lengths = target_lengths.type(torch.int32)
 
         return F.ctc_loss(log_probs=predictions,
                           targets=targets,

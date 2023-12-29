@@ -102,10 +102,6 @@ class BaselineTraining:
         self.early_stopping = EarlyStopping(log_path=self.models_path,
                                             model_name=self.model_name)
 
-        # Storage
-        # Define variables for training
-        self.train_losses, self.validation_losses = list(), list()
-
     @staticmethod
     def _create_subsets(data_feather: str,
                         root_dir: str,
@@ -147,6 +143,9 @@ class BaselineTraining:
             self.train_writer.add_histogram(tag=tag, values=flattened_weights, global_step=step, bins='tensorflow')
 
     def train(self) -> None:
+        # Define variables for training
+        train_losses, validation_losses = list(), list()
+
         # Main training loop
         for epoch in range(self.num_epochs):
             print("Epoch {}/{}".format(epoch + 1, self.num_epochs))
@@ -242,19 +241,19 @@ class BaselineTraining:
                         validation_loss += loss.detach().item() * spectrograms.size(0)
 
                 # Update both train and validation losses
-                self.train_losses.append(running_loss / len(self.train_dataset))
-                self.validation_losses.append(validation_loss / len(self.validation_dataset))
+                train_losses.append(running_loss / len(self.train_dataset))
+                validation_losses.append(validation_loss / len(self.validation_dataset))
 
                 # Turn on the scheduler
-                self.scheduler.step(self.validation_losses[-1])
+                self.scheduler.step(validation_losses[-1])
 
                 # Save metrics using TensorBoard - create separate scalars for training and validation
-                self.train_writer.add_scalar('Avg Loss', self.train_losses[-1], epoch + 1)
-                self.validation_writer.add_scalar('Avg Loss', self.validation_losses[-1], epoch + 1)
+                self.train_writer.add_scalar('Avg Loss', train_losses[-1], epoch + 1)
+                self.validation_writer.add_scalar('Avg Loss', validation_losses[-1], epoch + 1)
                
                 # Call Early Stopping
                 self.early_stopping(epoch=epoch,
-                                    val_loss=self.validation_losses[-1],
+                                    val_loss=validation_losses[-1],
                                     model=self.model,
                                     optimizer=self.optimizer)
                 if self.early_stopping.early_stop:
@@ -262,7 +261,7 @@ class BaselineTraining:
                     break
 
                 # Update TQDM progress bar with per-epoch train and validation loss
-                progress.set_postfix({"train_loss ": self.train_losses[-1], "val_loss ": self.validation_losses[-1]})
+                progress.set_postfix({"train_loss ": train_losses[-1], "val_loss ": validation_losses[-1]})
 
         # Close SummaryWriter after training
         self.train_writer.close()
