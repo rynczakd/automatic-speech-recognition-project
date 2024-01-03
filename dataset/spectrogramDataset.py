@@ -9,7 +9,7 @@ from typing import Any, List, Optional, Tuple
 from ctc_tokenizer.ctcTokenizer import CtcTokenizer
 from utils.audioUtils import img2spec
 from utils.datasetUtils import pad_and_sort_batch
-from dataset.spectrogramAugmentation import TimeMasking, FrequencyMasking, ToTensor
+from dataset.specAugment import TimeMasking, FrequencyMasking, ToTensor
 
 
 class SpectrogramDataset(Dataset):

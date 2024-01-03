@@ -24,12 +24,12 @@ BaselineTraining.optimizer = @AdamW
 BaselineTraining.scheduler = @ReduceLROnPlateau
 
 # ====== SPEC AUGMENTATION CONFIG ======
-TimeMasking.max_time_mask_percent = 0.15
-TimeMasking.num_time_masks = 2
+TimeMasking.max_time_mask = 100
+TimeMasking.num_time_masks = 1
 TimeMasking.zero_masking = True
 
-FrequencyMasking.max_freq_mask_percent = 0.15
-FrequencyMasking.num_time_masks = 2
+FrequencyMasking.max_freq_mask = 22
+FrequencyMasking.num_time_masks = 1
 FrequencyMasking.zero_masking = True
 
 # ====== ASR TRAINING - MODEL PART ======

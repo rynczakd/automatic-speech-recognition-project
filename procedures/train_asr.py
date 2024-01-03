@@ -108,9 +108,9 @@ class BaselineTraining:
     def _create_subsets(data_feather: str,
                         root_dir: str,
                         vocabulary_dir: str,
-                        validation_split: float = 0.3,
-                        random_state: int = None,
-                        shuffle_subset: bool = True) -> (SpectrogramDataset, SpectrogramDataset):
+                        validation_split: float,
+                        random_state: int,
+                        shuffle_subset: bool) -> (SpectrogramDataset, SpectrogramDataset):
 
         # Load train and validation subset from .feather file:
         train_subset, validation_subset = load_and_split_dataset(data_feather=data_feather,
