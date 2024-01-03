@@ -27,12 +27,18 @@ class FeatureExtractor(nn.Module):
                                kernel_size=(3, 3),
                                stride=(1, 1),
                                padding=(1, 1))
+
+        self.conv2_bn = nn.BatchNorm2d(128)
+
         # CONV3
         self.conv3 = nn.Conv2d(in_channels=128,
                                out_channels=256,
                                kernel_size=(3, 3),
                                stride=(1, 1),
                                padding=(1, 1))
+
+        self.conv3_bn = nn.BatchNorm2d(256)
+
         # CONV4
         self.conv4 = nn.Conv2d(in_channels=256,
                                out_channels=512,
@@ -46,7 +52,7 @@ class FeatureExtractor(nn.Module):
 
     @staticmethod
     @gin.configurable
-    def _create_fully_connected(input_size: int = 6144,
+    def _create_fully_connected(input_size: int = 16896,
                                 output_dim: int = 512,
                                 hidden_size: int = 4096,
                                 num_layers: int = 3,
@@ -80,8 +86,8 @@ class FeatureExtractor(nn.Module):
     def forward(self, x):
         # Define forward method for Feature Extractor
         x = self.pool(F.relu(self.conv1(x)))
-        x = F.relu(self.conv2(x))
-        x = F.relu(self.conv3(x))
+        x = F.relu(self.conv2_bn(self.conv2(x)))
+        x = F.relu(self.conv3_bn(self.conv3(x)))
         x = F.relu(self.conv4(x))
 
         # Perform averaging of feature maps over Channel dimension

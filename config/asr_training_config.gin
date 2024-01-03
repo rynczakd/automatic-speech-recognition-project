@@ -16,18 +16,20 @@ BaselineTraining.random_seed = None
 BaselineTraining.dataset_filepath = %DATASET_FILEPATH
 BaselineTraining.database_path = %DATABASE_PATH
 BaselineTraining.vocabulary_path = %VOCABULARY_PATH
-BaselineTraining.validation_split = 0.2
+BaselineTraining.validation_split = 0.3
 BaselineTraining.subset_random_state = 42
 BaselineTraining.subset_shuffle = True
-BaselineTraining.batch_size = 16
+BaselineTraining.batch_size = 8
+BaselineTraining.optimizer = @AdamW
+BaselineTraining.scheduler = @ReduceLROnPlateau
 
 # ====== SPEC AUGMENTATION CONFIG ======
-TimeMasking.max_time_mask_percent = 0.1
-TimeMasking.num_time_masks = 1
+TimeMasking.max_time_mask_percent = 0.15
+TimeMasking.num_time_masks = 2
 TimeMasking.zero_masking = True
 
 FrequencyMasking.max_freq_mask_percent = 0.15
-FrequencyMasking.num_time_masks = 1
+FrequencyMasking.num_time_masks = 2
 FrequencyMasking.zero_masking = True
 
 # ====== ASR TRAINING - MODEL PART ======
@@ -37,11 +39,11 @@ SpeechRecognition.feature_extractor = @FeatureExtractor
 
 # FEATURE EXTRACTOR
 FeatureExtractor.reduce_mean = False
-_create_fully_connected.input_size = 6144
+_create_fully_connected.input_size = 16896
 _create_fully_connected.output_dim = 512
-_create_fully_connected.hidden_size = 4096
-_create_fully_connected.num_layers = 3
-_create_fully_connected.dropout = 0.2
+_create_fully_connected.hidden_size = 2048
+_create_fully_connected.num_layers = 1
+_create_fully_connected.dropout = 0.1
 
 # GRU
 _create_gru.input_size = 512
@@ -53,19 +55,21 @@ _init_hidden_state.random_init = False
 _create_classifier.input_size = 512
 _create_classifier.output_size = 29
 _create_classifier.hidden_size = 128
-_create_classifier.num_layers = 2
+_create_classifier.num_layers = 3
 
 BaselineTraining.model_name = %MODEL_NAME
 
 # ====== ASR TRAINING - TRAINING LOOP ======
-BaselineTraining.num_epochs = 400
-BaselineTraining.checkpoint_epoch_num = 50
+BaselineTraining.num_epochs = 80
+BaselineTraining.checkpoint_epoch_num = 10
 
 # ====== CTC LOSS WRAPPER AND OPTIMIZER ======
 CTCLoss.blank = 0
 CTCLoss.pack_predictions = False
-AdamW.lr = 0.0003
-AdamW.weight_decay = 0.01
+
+AdamW.lr = 2.25E-04
+AdamW.weight_decay = 1E-05
+AdamW.betas = (0.95, 0.99)
 
 # ====== ASR TRAINING - PER-EPOCH ACTIVITY ======
 ReduceLROnPlateau.mode = 'min'
@@ -76,7 +80,7 @@ ReduceLROnPlateau.verbose = True
 # ====== EARLY STOPPING ======
 EarlyStopping.patience = 30
 EarlyStopping.verbose = True
-EarlyStopping.delta = 1.0
+EarlyStopping.delta = 0.1
 
 # ====== ASR TRAINING - RESULTS ======
 BaselineTraining.results_dir = %RESULTS_DIR

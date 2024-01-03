@@ -27,7 +27,7 @@ class SpeechRecognition(nn.Module):
 
         return arch(input_size=input_size,
                     hidden_size=hidden_size,
-                    num_layers=1,
+                    num_layers=3,
                     dropout=0.0,
                     bidirectional=True,
                     batch_first=True)
@@ -37,9 +37,9 @@ class SpeechRecognition(nn.Module):
     def _init_hidden_state(batch_size: int, random_init: bool = False):
         # Initialize hidden state for GRU network
         if random_init:
-            h0 = torch.randn(2, batch_size, 256)
+            h0 = torch.randn(6, batch_size, 256)
         else:
-            h0 = torch.zeros(2, batch_size, 256)
+            h0 = torch.zeros(6, batch_size, 256)
 
         return h0
 

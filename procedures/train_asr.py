@@ -32,6 +32,8 @@ class BaselineTraining:
                  subset_random_state: Any,
                  subset_shuffle: bool,
                  batch_size: int,
+                 optimizer: torch.optim,
+                 scheduler: torch.optim.lr_scheduler,
                  model: Callable[..., nn.Module],  # MODEL PART
                  model_name: str,
                  num_epochs: int,  # TRAINING PARAMETERS
@@ -70,7 +72,7 @@ class BaselineTraining:
 
         # CRITERION AND OPTIMIZER
         self.criterion = CTCLoss()
-        self.optimizer = torch.optim.AdamW(params=self.model.parameters())
+        self.optimizer = optimizer(params=self.model.parameters())
 
         # TRAINING LOOP
         self.num_epochs = num_epochs
@@ -79,7 +81,7 @@ class BaselineTraining:
         self.checkpoint = dict()
 
         # PER-EPOCH ACTIVITY
-        self.scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer=self.optimizer)
+        self.scheduler = scheduler(optimizer=self.optimizer)
 
         # RESULTS
         self.models_path = os.path.join(results_dir, 'models', self.model_name)
@@ -106,7 +108,7 @@ class BaselineTraining:
     def _create_subsets(data_feather: str,
                         root_dir: str,
                         vocabulary_dir: str,
-                        validation_split: float = 0.2,
+                        validation_split: float = 0.3,
                         random_state: int = None,
                         shuffle_subset: bool = True) -> (SpectrogramDataset, SpectrogramDataset):
 
@@ -142,6 +144,10 @@ class BaselineTraining:
             # Save a histogram of model weights
             self.train_writer.add_histogram(tag=tag, values=flattened_weights, global_step=step, bins='tensorflow')
 
+    def _current_lr(self) -> float:
+        for p in self.optimizer.param_groups:
+            return p['lr']
+
     def train(self) -> None:
         # Define variables for training
         train_losses, validation_losses = list(), list()
@@ -158,7 +164,7 @@ class BaselineTraining:
 
             # Prepare TQDM for visualization
             with tqdm(total=len(self.train_loader), unit="batch") as progress:
-                progress.set_description(desc="Epoch {}".format(epoch + 1))
+                progress.set_description(desc="Epoch {}, LR {}".format(epoch + 1, self._current_lr()))
 
                 # Set model to training mode
                 self.model.train(mode=True)
@@ -205,7 +211,7 @@ class BaselineTraining:
                     running_loss += loss.detach().item() * spectrograms.size(0)
 
                     # Update TQDM progress bar with loss metric
-                    progress.set_postfix(ordered_dict={"train_loss - running ": running_loss})
+                    progress.set_postfix(ordered_dict={"train_loss - batch ": loss.detach().item()})
 
                     # Add loss for current step
                     self.train_writer.add_scalar(f'Training loss/batch', loss.detach().item(), self.total_iters)
