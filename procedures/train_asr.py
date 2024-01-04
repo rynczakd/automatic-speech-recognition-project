@@ -18,6 +18,7 @@ from procedures.early_stopping import EarlyStopping
 
 gin.external_configurable(torch.optim.AdamW, module='torch.optim')
 gin.external_configurable(torch.optim.lr_scheduler.ReduceLROnPlateau, module='torch.optim.lr_scheduler')
+gin.external_configurable(torch.optim.lr_scheduler.CosineAnnealingWarmRestarts, module='torch.optim.lr_scheduler')
 
 
 @gin.configurable

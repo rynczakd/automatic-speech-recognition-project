@@ -11,44 +11,47 @@ from utils.modelUtils import get_conv_output_widths
 @gin.configurable
 class SpeechRecognition(nn.Module):
     def __init__(self,
-                 feature_extractor: Callable[..., nn.Module]) -> None:
+                 feature_extractor: Callable[..., nn.Module],
+                 gru_layers: int) -> None:
         super(SpeechRecognition, self).__init__()
 
         self.feature_extractor = feature_extractor()
-        self.gru = self._create_gru()
+        self.gru_layers = gru_layers
+        self.gru = self._create_gru(gru_num_layers=self.gru_layers)
         self.ctc_encoder = self._create_classifier()
         self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
     @staticmethod
-    @gin.configurable(denylist=['arch'])
-    def _create_gru(input_size: int = 512,
-                    hidden_size: int = 256,
+    @gin.configurable(denylist=['arch', 'gru_num_layers'])
+    def _create_gru(input_size: int,
+                    hidden_size: int,
+                    gru_num_layers: int,
+                    gru_dropout: float,
                     arch: nn.Module = nn.GRU) -> nn.Module:
 
         return arch(input_size=input_size,
                     hidden_size=hidden_size,
-                    num_layers=3,
-                    dropout=0.0,
+                    num_layers=gru_num_layers,
+                    dropout=gru_dropout,
                     bidirectional=True,
                     batch_first=True)
 
-    @staticmethod
     @gin.configurable(denylist=['batch_size'])
-    def _init_hidden_state(batch_size: int, random_init: bool = False):
+    def _init_hidden_state(self, batch_size: int, random_init: bool = False):
         # Initialize hidden state for GRU network
         if random_init:
-            h0 = torch.randn(6, batch_size, 256)
+            h0 = torch.randn(self.gru_layers * 2, batch_size, 256)
         else:
-            h0 = torch.zeros(6, batch_size, 256)
+            h0 = torch.zeros(self.gru_layers * 2, batch_size, 256)
 
         return h0
 
     @staticmethod
     @gin.configurable
-    def _create_classifier(input_size: int = 512,
-                           output_size: int = 29,
-                           hidden_size: int = 128,
-                           num_layers: int = 2) -> nn.Module:
+    def _create_classifier(input_size: int,
+                           output_size: int,
+                           hidden_size: int,
+                           num_layers: int) -> nn.Module:
         assert num_layers >= 1, "Number of layers must be greater than or equal to 1"
 
         if num_layers == 1:

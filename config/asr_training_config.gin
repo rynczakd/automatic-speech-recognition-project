@@ -21,7 +21,7 @@ BaselineTraining.subset_random_state = 42
 BaselineTraining.subset_shuffle = True
 BaselineTraining.batch_size = 8
 BaselineTraining.optimizer = @AdamW
-BaselineTraining.scheduler = @ReduceLROnPlateau
+BaselineTraining.scheduler = @ReduceLROnPlateau  # @CosineAnnealingWarmRestarts
 
 # ====== SPEC AUGMENTATION CONFIG ======
 TimeMasking.max_time_mask = 100
@@ -36,10 +36,16 @@ FrequencyMasking.zero_masking = True
 # SPEECH RECOGNITION MODEL
 BaselineTraining.model = @SpeechRecognition
 SpeechRecognition.feature_extractor = @FeatureExtractor
+SpeechRecognition.gru_layers = 3
 
 # FEATURE EXTRACTOR
+FeatureExtractor.feature_extractor = 'vgg-cnn'
+FeatureExtractor.input_channels = 1
+FeatureExtractor.output_channels = 128 # 512 for 'vgg-based', 128 for 'vgg-cnn'
+FeatureExtractor.num_mel_filters = 64
 FeatureExtractor.reduce_mean = False
-_create_fully_connected.input_size = 16896
+
+# FEATURE EXTRACTOR - FULLY CONNECTED
 _create_fully_connected.output_dim = 512
 _create_fully_connected.hidden_size = 2048
 _create_fully_connected.num_layers = 1
@@ -48,12 +54,13 @@ _create_fully_connected.dropout = 0.1
 # GRU
 _create_gru.input_size = 512
 _create_gru.hidden_size = 256
+_create_gru.gru_dropout = 0.0
 
 _init_hidden_state.random_init = False
 
 # CLASSIFIER
-_create_classifier.input_size = 512
-_create_classifier.output_size = 29
+_create_classifier.input_size = 512  # 2 * GRU_HIDDEN_SIZE
+_create_classifier.output_size = 29  # Letters + 1
 _create_classifier.hidden_size = 128
 _create_classifier.num_layers = 3
 
@@ -76,6 +83,9 @@ ReduceLROnPlateau.mode = 'min'
 ReduceLROnPlateau.factor = 0.1
 ReduceLROnPlateau.patience = 10
 ReduceLROnPlateau.verbose = True
+
+CosineAnnealingWarmRestarts.T_0 = 3
+CosineAnnealingWarmRestarts.verbose = True
 
 # ====== EARLY STOPPING ======
 EarlyStopping.patience = 30
