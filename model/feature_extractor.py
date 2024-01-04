@@ -1,7 +1,7 @@
 import gin
 import torch
 from torch import nn
-
+import numpy as np
 
 @gin.configurable
 class FeatureExtractor(nn.Module):
@@ -17,7 +17,7 @@ class FeatureExtractor(nn.Module):
         self.feature_extractor = feature_extractor
         self.input_channels = input_channels
         self.output_channels = output_channels
-        self.num_mel_filters = torch.tensor(num_mel_filters)
+        self.num_mel_filters = num_mel_filters
 
         # Feature embeddings
         if self.feature_extractor == 'vgg-based':
@@ -116,8 +116,8 @@ class FeatureExtractor(nn.Module):
 
         for conv_cfg in conf_cfg_dict.values():
             kernel_size, stride, padding = conv_cfg['kernel_size'], conv_cfg['stride'], conv_cfg['padding']
-            num_mel_filters = torch.floor(((num_mel_filters + 2 * padding[1] - (kernel_size[1] - 1) - 1) /
-                                           stride[1]) + 1)
+            num_mel_filters = np.floor(((num_mel_filters + 2 * padding[1] - (kernel_size[1] - 1) - 1) /
+                                        stride[1]) + 1)
 
         return num_mel_filters
 
