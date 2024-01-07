@@ -212,7 +212,7 @@ class BaselineTraining:
                     running_loss += loss.detach().item() * spectrograms.size(0)
 
                     # Update TQDM progress bar with loss metric
-                    progress.set_postfix(ordered_dict={"train_loss - batch ": loss.detach().item()})
+                    progress.set_postfix(ordered_dict={"train_loss - running ": running_loss})
 
                     # Add loss for current step
                     self.train_writer.add_scalar(f'Training loss/batch', loss.detach().item(), self.total_iters)
@@ -252,7 +252,12 @@ class BaselineTraining:
                 validation_losses.append(validation_loss / len(self.validation_dataset))
 
                 # Turn on the scheduler
-                self.scheduler.step(validation_losses[-1])
+                if isinstance(self.scheduler, torch.optim.lr_scheduler.ReduceLROnPlateau):
+                    self.scheduler.step(validation_losses[-1])
+                elif isinstance(self.scheduler, torch.optim.lr_scheduler.CosineAnnealingWarmRestarts):
+                    self.scheduler.step(epoch + 1)
+                else:
+                    self.scheduler.step()
 
                 # Save metrics using TensorBoard - create separate scalars for training and validation
                 self.train_writer.add_scalar('Avg Loss', train_losses[-1], epoch + 1)
