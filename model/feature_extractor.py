@@ -1,29 +1,97 @@
+# Feature Extractor model is inspired by VGG-network: https://arxiv.org/pdf/1409.1556.pdf
+# Residual Block is inspired by: https://arxiv.org/pdf/1603.05027.pdf
+#                                https://www.assemblyai.com/blog/end-to-end-speech-recognition-pytorch/
+
 import gin
+import numpy as np
 import torch
 from torch import nn
-import numpy as np
+from typing import Tuple
+
+
+class CnnLayerNorm(nn.Module):
+    def __init__(self, features_dim: int):
+        super(CnnLayerNorm, self).__init__()
+        # Define normalization layer for CNN
+        self.layer_norm = nn.LayerNorm(features_dim)
+
+    def forward(self, x):
+        # Transpose batch to calculate normalization over frequencies
+        x = x.transpose(2, 3).contiguous()  # (B, C, W, H)
+        x = self.layer_norm(x)
+        return x.transpose(2, 3).contiguous()  # (B, C, H, W)
+
+
+class ResnetBlock(nn.Module):
+    def __init__(self,
+                 input_channels: int,
+                 output_channels: int,
+                 n_features_dim: int,
+                 dropout: float):
+        super(ResnetBlock, self).__init__()
+
+        self.conv_block = self.build_conv_block(input_channels=input_channels,
+                                                output_channels=output_channels,
+                                                n_features_dim=n_features_dim,
+                                                dropout=dropout)
+
+    @staticmethod
+    def build_conv_block(input_channels: int,
+                         output_channels: int,
+                         n_features_dim: int,
+                         kernel_size: Tuple[int, int] = (3, 3),
+                         stride: Tuple[int, int] = (1, 1),
+                         dropout: float = 0.1):
+        # Prepare empty list for storing Layers
+        conv_block = []
+
+        conv_block += [CnnLayerNorm(features_dim=n_features_dim),
+                       nn.GELU(),
+                       nn.Dropout(p=dropout),
+                       nn.Conv2d(in_channels=input_channels,
+                                 out_channels=output_channels,
+                                 kernel_size=kernel_size,
+                                 stride=stride,
+                                 padding=(kernel_size[0] // 2, kernel_size[1] // 2)),
+                       CnnLayerNorm(features_dim=n_features_dim),
+                       nn.GELU(),
+                       nn.Dropout(p=dropout),
+                       nn.Conv2d(in_channels=output_channels,
+                                 out_channels=output_channels,
+                                 kernel_size=kernel_size,
+                                 stride=stride,
+                                 padding=(np.floor_divide(kernel_size[0], 2), np.floor_divide(kernel_size[1], 2))),
+                       ]
+
+        return nn.Sequential(*conv_block)
+
+    def forward(self, x):
+        out = x + self.conv_block(x)
+
+        return out
 
 
 @gin.configurable
 class FeatureExtractor(nn.Module):
     def __init__(self,
-                 feature_extractor: str,
+                 feature_extractor_type: str,
                  input_channels: int,
                  output_channels: int,
-                 num_mel_filters: int,
+                 num_mel_filters: int = 64,
+                 residual_blocks: int = None,
                  reduce_mean: bool = False):
         super(FeatureExtractor, self).__init__()
 
         # Define input channels and output channels for Feature Extractor
-        self.feature_extractor = feature_extractor
-        self.input_channels = input_channels
-        self.output_channels = output_channels
-        self.num_mel_filters = num_mel_filters
+        self.feature_extractor = feature_extractor_type
+
+        # Define Convolutional part of feature extractor
+        self.conv_net = None
 
         # Feature embeddings
         if self.feature_extractor == 'vgg-based':
             self.conv_net = nn.Sequential(
-                nn.Conv2d(in_channels=self.input_channels,  # CONV1
+                nn.Conv2d(in_channels=input_channels,  # CONV1
                           out_channels=64,
                           kernel_size=(3, 3),
                           stride=(1, 1),
@@ -47,7 +115,7 @@ class FeatureExtractor(nn.Module):
                 nn.BatchNorm2d(256),
                 nn.ReLU(),
                 nn.Conv2d(in_channels=256,  # CONV4
-                          out_channels=self.output_channels,
+                          out_channels=output_channels,
                           kernel_size=(3, 3),
                           stride=(1, 1),
                           padding=(1, 1)),
@@ -56,7 +124,7 @@ class FeatureExtractor(nn.Module):
 
         elif self.feature_extractor == 'vgg-cnn':
             self.conv_net = nn.Sequential(
-                nn.Conv2d(in_channels=self.input_channels,
+                nn.Conv2d(in_channels=input_channels,
                           out_channels=64,
                           kernel_size=(3, 3),
                           stride=(1, 1),
@@ -79,7 +147,7 @@ class FeatureExtractor(nn.Module):
                           padding=(1, 1)),
                 nn.ReLU(),
                 nn.Conv2d(in_channels=128,
-                          out_channels=self.output_channels,
+                          out_channels=output_channels,
                           kernel_size=(3, 3),
                           stride=(1, 1),
                           padding=(1, 1)),
@@ -88,14 +156,32 @@ class FeatureExtractor(nn.Module):
                              stride=(2, 2),
                              padding=(0, 0))
             )
+        elif self.feature_extractor == 'residual-cnn':
+            # Prepare empty list for storing Conv-blocks
+            conv_layers = []
+
+            conv_layers += [nn.Conv2d(in_channels=input_channels,
+                                      out_channels=32,
+                                      kernel_size=(3, 3),
+                                      stride=(2, 2),
+                                      padding=(1, 1))]
+
+            residual_blocks = [ResnetBlock(input_channels=32,
+                                           output_channels=output_channels,
+                                           dropout=0.1,
+                                           n_features_dim=32)
+                               for _ in range(residual_blocks) if residual_blocks is not None and residual_blocks > 0]
+
+            conv_layers += residual_blocks
+
+            self.conv_net = nn.Sequential(*conv_layers)
 
         self.reduce_mean = reduce_mean
 
-        if not self.reduce_mean:
+        if not self.reduce_mean and self.conv_net is not None:
             # LINEAR LAYERS
-            self.input_dense = int(self._get_conv_output_height(num_mel_filters=self.num_mel_filters) *
-                                   self.output_channels)
-            self.dense = self._create_fully_connected(input_size=self.input_dense)
+            input_dense_size = int(self._get_conv_output_height(num_mel_filters=num_mel_filters) * output_channels)
+            self.dense = self._create_fully_connected(dense_input_size=input_dense_size)
 
     def _get_feature_extractor_parameters(self) -> dict:
         # Create dictionary to store the parameters
@@ -132,32 +218,30 @@ class FeatureExtractor(nn.Module):
         assert num_layers >= 1, "Number of layers must be greater than or equal to 1"
 
         if num_layers == 1:
-            layers = [nn.Linear(in_features=input_size, out_features=output_dim),
-                      nn.LayerNorm(normalized_shape=output_dim),
-                      nn.ReLU()]
+            layers = [nn.Linear(in_features=input_size, out_features=output_dim)]
 
             return nn.Sequential(*layers)
 
         layers = [nn.Linear(in_features=input_size, out_features=hidden_size),
                   nn.LayerNorm(normalized_shape=hidden_size),
-                  nn.ReLU(),
+                  nn.GELU(),
                   nn.Dropout(p=dropout)]
 
         for _ in range(num_layers - 2):
             layers.extend([nn.Linear(in_features=hidden_size, out_features=hidden_size),
                            nn.LayerNorm(normalized_shape=hidden_size),
-                           nn.ReLU(),
+                           nn.GELU(),
                            nn.Dropout(p=dropout)])
 
         layers.extend([nn.Linear(in_features=hidden_size, out_features=output_dim),
-                       nn.LayerNorm(normalized_shape=output_dim),
-                       nn.ReLU()])
+                       nn.GELU()])
 
         return nn.Sequential(*layers)
 
     def forward(self, x):
         # Define forward method for Feature Extractor
-        if self.feature_extractor == 'vgg-based' or self.feature_extractor == 'vgg-cnn':
+        if self.feature_extractor == 'vgg-based' or self.feature_extractor == 'vgg-cnn' or \
+                self.feature_extractor == 'residual-cnn':
             x = self.conv_net(x)
 
         # Perform averaging of feature maps over Channel dimension
