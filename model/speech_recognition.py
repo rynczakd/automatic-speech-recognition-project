@@ -9,9 +9,53 @@ from utils.modelUtils import get_conv_output_widths
 
 
 @gin.configurable
+class NormGRU(nn.Module):
+    def __init__(self,
+                 input_size: int,
+                 hidden_size: int,
+                 arch: nn.Module = nn.GRU,
+                 bidirectional: bool = True,
+                 layer_norm: bool = True,
+                 dropout: float = 0.1):
+        super(NormGRU, self).__init__()
+
+        self.input_size = input_size
+        self.hidden_size = hidden_size
+        self.bidirectional = bidirectional
+        self.layer_norm = nn.LayerNorm(input_size) if layer_norm else None
+
+        self.gru = arch(input_size=input_size,
+                        hidden_size=hidden_size,
+                        num_layers=1,
+                        bidirectional=bidirectional,
+                        bias=True,
+                        dropout=dropout)
+
+    def forward(self, x, output_lengths, h_0=None):
+        # Forward-pass for Normalized GRU-Net
+        if self.layer_norm:
+            x = self.layer_norm(x)
+
+        # Prepare data for GRU Neural Network
+        x = pack_padded_sequence(input=x, lengths=output_lengths.to('cpu'), batch_first=True, enforce_sorted=True)
+
+        # Feed-forward feature maps into GRU Neural Network
+        x, h = self.gru(x, h_0)
+
+        # Unpack values
+        x, _ = pad_packed_sequence(x, batch_first=True)
+
+        if self.bidirectional:
+            x = x.view(x.size(0), x.size(1), 2, -1).sum(2).view(x.size(0), x.size(1), -1)
+
+        return x, h
+
+
+@gin.configurable
 class SpeechRecognition(nn.Module):
     def __init__(self,
                  feature_extractor: Callable[..., nn.Module],
+                 use_norm_gru: bool,
                  gru_layers: int) -> None:
         super(SpeechRecognition, self).__init__()
 
@@ -20,55 +64,77 @@ class SpeechRecognition(nn.Module):
         self.gru = self._create_gru(gru_num_layers=self.gru_layers)
         self.ctc_encoder = self._create_classifier()
         self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+        self.use_norm_gru = use_norm_gru
 
-    @staticmethod
-    @gin.configurable(denylist=['arch', 'gru_num_layers'])
-    def _create_gru(input_size: int,
+    @gin.configurable(denylist=['arch'])
+    def _create_gru(self,
+                    input_size: int,
                     hidden_size: int,
                     gru_num_layers: int,
                     gru_dropout: float,
-                    arch: nn.Module = nn.GRU) -> nn.Module:
+                    arch: nn.Module = nn.GRU):
+        assert gru_num_layers >= 1, "Number of layers must be greater than or equal to 1"
 
-        return arch(input_size=input_size,
-                    hidden_size=hidden_size,
-                    num_layers=gru_num_layers,
-                    dropout=gru_dropout,
-                    bidirectional=True,
-                    batch_first=True)
-
-    @gin.configurable(denylist=['batch_size'])
-    def _init_hidden_state(self, batch_size: int, random_init: bool = False):
-        # Initialize hidden state for GRU network
-        if random_init:
-            h0 = torch.randn(self.gru_layers * 2, batch_size, 256)
+        if not self.use_norm_gru:
+            # Return n-layer GRU
+            return arch(input_size=input_size,
+                        hidden_size=hidden_size,
+                        num_layers=gru_num_layers,
+                        dropout=gru_dropout,
+                        bidirectional=True,
+                        batch_first=True)
         else:
-            h0 = torch.zeros(self.gru_layers * 2, batch_size, 256)
+            gru_layers = [NormGRU(input_size=input_size,
+                                  hidden_size=hidden_size)]
 
-        return h0
+            gru_norm_layers = [NormGRU(input_size=hidden_size,
+                                       hidden_size=hidden_size)
+                               for _ in range(gru_num_layers - 1)]
+
+            gru_layers += gru_norm_layers
+
+            return nn.Sequential(*gru_layers)
 
     @staticmethod
     @gin.configurable
     def _create_classifier(input_size: int,
                            output_size: int,
                            hidden_size: int,
-                           num_layers: int) -> nn.Module:
+                           num_layers: int,
+                           classifier_dropout: float) -> nn.Module:
         assert num_layers >= 1, "Number of layers must be greater than or equal to 1"
 
         if num_layers == 1:
             return nn.Linear(in_features=input_size, out_features=output_size)
 
         layers = [nn.Linear(in_features=input_size, out_features=hidden_size),
-                  nn.LayerNorm(normalized_shape=hidden_size),
-                  nn.GELU()]
+                  nn.GELU(),
+                  nn.Dropout(p=classifier_dropout)]
 
         for _ in range(num_layers - 2):
             layers.extend([nn.Linear(in_features=hidden_size, out_features=hidden_size),
-                           nn.LayerNorm(normalized_shape=hidden_size),
-                           nn.GELU()])
+                           nn.GELU(),
+                           nn.Dropout(p=classifier_dropout)])
 
         layers.append(nn.Linear(in_features=hidden_size, out_features=output_size))
 
         return nn.Sequential(*layers)
+
+    @gin.configurable(denylist=['batch_size'])
+    def _init_hidden_state(self,
+                           batch_size: int,
+                           hidden_size: int,
+                           random_init: bool = False,
+                           use_bidirectional: bool = True):
+        # Initialize hidden state for GRU network
+        num_directions = 2 if use_bidirectional else 1
+
+        if random_init:
+            h0 = torch.randn(num_directions, batch_size, hidden_size)
+        else:
+            h0 = torch.zeros(num_directions, batch_size, hidden_size)
+
+        return h0
 
     def forward(self, input_data: torch.Tensor, padding_mask: torch.Tensor) -> (torch.Tensor, torch.Tensor):
         # Compute spectrograms lengths without padding
@@ -80,19 +146,25 @@ class SpeechRecognition(nn.Module):
         # Feed-forward input data through FeatureExtractor
         x = self.feature_extractor(input_data)
 
-        # Prepare data for RNN (GRU) Neural Network
-        x = pack_padded_sequence(input=x, lengths=feature_lengths.to('cpu'), batch_first=True, enforce_sorted=True)
-
         # Initialize hidden state for GRU
-        h0 = self._init_hidden_state(batch_size=input_data.shape[0], random_init=False).to(self.device)
+        h0 = self._init_hidden_state(batch_size=input_data.shape[0]).to(self.device)
 
-        # Feed-forward feature maps into GRU Neural Network
-        packed_output, _ = self.gru(x, h0)
+        if self.use_norm_gru:
+            # Iterate over GRU layers
+            for i, gru in enumerate(self.gru):
+                x, _ = gru(x, feature_lengths, h0)
 
-        output, input_sizes = pad_packed_sequence(packed_output, batch_first=True)
+        else:
+            # Prepare data for RNN (GRU) Neural Network
+            x = pack_padded_sequence(input=x, lengths=feature_lengths.to('cpu'), batch_first=True, enforce_sorted=True)
+
+            # Feed-forward feature maps into GRU Neural Network
+            x, _ = self.gru(x, torch.cat([h0] * self.gru_layers, dim=0).to(self.device))
+
+            x, _ = pad_packed_sequence(x, batch_first=True)
 
         # Feed-forward GRU hidden states into CTC decoder
-        x = self.ctc_encoder(output)
+        x = self.ctc_encoder(x)
 
         return x
     
