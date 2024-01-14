@@ -19,7 +19,7 @@ BaselineTraining.vocabulary_path = %VOCABULARY_PATH
 BaselineTraining.validation_split = 0.2
 BaselineTraining.subset_random_state = None
 BaselineTraining.subset_shuffle = True
-BaselineTraining.batch_size = 1
+BaselineTraining.batch_size = 8
 BaselineTraining.optimizer = @AdamW
 BaselineTraining.scheduler = @CosineAnnealingWarmRestarts  # @ReduceLROnPlateau
 
