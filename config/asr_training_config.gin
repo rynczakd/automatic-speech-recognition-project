@@ -16,12 +16,12 @@ BaselineTraining.random_seed = None
 BaselineTraining.dataset_filepath = %DATASET_FILEPATH
 BaselineTraining.database_path = %DATABASE_PATH
 BaselineTraining.vocabulary_path = %VOCABULARY_PATH
-BaselineTraining.validation_split = 0.3
-BaselineTraining.subset_random_state = 42
+BaselineTraining.validation_split = 0.2
+BaselineTraining.subset_random_state = None
 BaselineTraining.subset_shuffle = True
-BaselineTraining.batch_size = 8
+BaselineTraining.batch_size = 1
 BaselineTraining.optimizer = @AdamW
-BaselineTraining.scheduler = @ReduceLROnPlateau  # @CosineAnnealingWarmRestarts
+BaselineTraining.scheduler = @CosineAnnealingWarmRestarts  # @ReduceLROnPlateau
 
 # ====== SPEC AUGMENTATION CONFIG ======
 TimeMasking.max_time_mask = 100
@@ -32,37 +32,46 @@ FrequencyMasking.max_freq_mask = 22
 FrequencyMasking.num_time_masks = 1
 FrequencyMasking.zero_masking = True
 
-# ====== ASR TRAINING - MODEL PART ======
+# ===================== ASR TRAINING - MODEL PART =====================
 # SPEECH RECOGNITION MODEL
 BaselineTraining.model = @SpeechRecognition
 SpeechRecognition.feature_extractor = @FeatureExtractor
-SpeechRecognition.gru_layers = 3
+SpeechRecognition.use_norm_gru = True
+SpeechRecognition.gru_layers = 5
 
-# FEATURE EXTRACTOR
-FeatureExtractor.feature_extractor = 'vgg-cnn'
+# FEATURE EXTRACTOR - CNN
+FeatureExtractor.feature_extractor_type = 'residual-cnn'  # ['vgg-based', 'vgg-cnn', 'residual-cnn']
 FeatureExtractor.input_channels = 1
-FeatureExtractor.output_channels = 128 # 512 for 'vgg-based', 128 for 'vgg-cnn'
+FeatureExtractor.output_channels = 32  # {'vgg-based': 512, 'vgg-cnn': 128, 'residual-cnn': 32}
 FeatureExtractor.num_mel_filters = 64
+FeatureExtractor.residual_blocks = 2
 FeatureExtractor.reduce_mean = False
 
 # FEATURE EXTRACTOR - FULLY CONNECTED
 _create_fully_connected.output_dim = 512
-_create_fully_connected.hidden_size = 2048
+_create_fully_connected.hidden_size = 512
 _create_fully_connected.num_layers = 1
 _create_fully_connected.dropout = 0.1
 
-# GRU
+# SPEECH RECOGNITION - GRU - CONSTANTS
+GRU_HIDDEN_SIZE = 512
+BIDIRECTIONAL = True
+
 _create_gru.input_size = 512
-_create_gru.hidden_size = 256
-_create_gru.gru_dropout = 0.0
+_create_gru.hidden_size = %GRU_HIDDEN_SIZE
+_create_gru.bidirectional = %BIDIRECTIONAL
+_create_gru.gru_dropout = 0.1
 
+_init_hidden_state.hidden_size = %GRU_HIDDEN_SIZE
 _init_hidden_state.random_init = False
+_init_hidden_state.use_bidirectional = %BIDIRECTIONAL
 
-# CLASSIFIER
-_create_classifier.input_size = 512  # 2 * GRU_HIDDEN_SIZE
+# SPEECH RECOGNITION - CTC CLASSIFIER
+_create_classifier.input_size = 512  # IF USE_NORM_GRU: INPUT_SIZE = HIDDEN_SIZE ELSE: 2 * GRU_HIDDEN_SIZE
 _create_classifier.output_size = 29  # Letters + 1
-_create_classifier.hidden_size = 128
-_create_classifier.num_layers = 3
+_create_classifier.hidden_size = 256
+_create_classifier.num_layers = 2
+_create_classifier.classifier_dropout = 0.1
 
 BaselineTraining.model_name = %MODEL_NAME
 
@@ -74,6 +83,7 @@ BaselineTraining.checkpoint_epoch_num = 10
 CTCLoss.blank = 0
 CTCLoss.pack_predictions = False
 
+# OPTIMIZER PARAMETERS
 AdamW.lr = 2.25E-04
 AdamW.weight_decay = 1E-05
 AdamW.betas = (0.95, 0.99)
@@ -81,10 +91,10 @@ AdamW.betas = (0.95, 0.99)
 # ====== ASR TRAINING - PER-EPOCH ACTIVITY ======
 ReduceLROnPlateau.mode = 'min'
 ReduceLROnPlateau.factor = 0.1
-ReduceLROnPlateau.patience = 10
+ReduceLROnPlateau.patience = 5
 ReduceLROnPlateau.verbose = True
 
-CosineAnnealingWarmRestarts.T_0 = 3
+CosineAnnealingWarmRestarts.T_0 = 5
 CosineAnnealingWarmRestarts.verbose = True
 
 # ====== EARLY STOPPING ======

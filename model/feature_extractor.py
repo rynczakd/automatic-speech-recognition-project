@@ -168,8 +168,8 @@ class FeatureExtractor(nn.Module):
 
             residual_blocks = [ResnetBlock(input_channels=32,
                                            output_channels=output_channels,
-                                           dropout=0.1,
-                                           n_features_dim=32)
+                                           n_features_dim=32,
+                                           dropout=0.1)
                                for _ in range(residual_blocks) if residual_blocks is not None and residual_blocks > 0]
 
             conv_layers += residual_blocks
@@ -181,7 +181,7 @@ class FeatureExtractor(nn.Module):
         if not self.reduce_mean and self.conv_net is not None:
             # LINEAR LAYERS
             input_dense_size = int(self._get_conv_output_height(num_mel_filters=num_mel_filters) * output_channels)
-            self.dense = self._create_fully_connected(dense_input_size=input_dense_size)
+            self.dense = self._create_fully_connected(input_size=input_dense_size)
 
     def _get_feature_extractor_parameters(self) -> dict:
         # Create dictionary to store the parameters
