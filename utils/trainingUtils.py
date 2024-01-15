@@ -28,6 +28,11 @@ def load_vocabulary(vocabulary_dir: str) -> dict:
     return pd.read_feather(vocabulary_dir).set_index('Character')['Index'].to_dict()
 
 
+def load_decoder(decoder_dir: str) -> dict:
+    # Return int-to-char decoder as dict
+    return pd.read_feather(decoder_dir).set_index('Index')['Character'].to_dict()
+
+
 def set_seed(seed: int = 42) -> None:
     # Set fixed seed for Python, Numpy and PyTorch for reproducibility of experiments
     random.seed(seed)  # Python seed

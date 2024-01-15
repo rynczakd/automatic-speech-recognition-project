@@ -10,6 +10,7 @@ from dataset.spectrogramDataset import SpectrogramDataset
 from model.ctc_wrapper import CTCLoss
 from utils.trainingUtils import load_and_split_dataset
 from utils.trainingUtils import load_vocabulary
+from utils.trainingUtils import load_decoder
 from utils.trainingUtils import set_seed
 from tqdm import tqdm
 from torch.utils.tensorboard import SummaryWriter
@@ -29,6 +30,7 @@ class BaselineTraining:
                  dataset_filepath: str,  # DATASET/DATALOADER PART
                  database_path: str,
                  vocabulary_path: str,
+                 int_to_char_decoder_path: str,
                  validation_split: int,
                  subset_random_state: Any,
                  subset_shuffle: bool,
@@ -87,6 +89,9 @@ class BaselineTraining:
         # RESULTS
         self.models_path = os.path.join(results_dir, 'models', self.model_name)
         os.makedirs(self.models_path, exist_ok=True)
+
+        # VALIDATION METRICS
+        self.int_to_char_decoder = load_decoder(decoder_dir=int_to_char_decoder_path)
 
         # LOGGING
 
