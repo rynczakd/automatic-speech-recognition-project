@@ -106,7 +106,7 @@ class BaselineTraining:
         os.makedirs(self.logging_validation_dir, exist_ok=True)
         # Validation writer
         self.validation_writer = SummaryWriter(log_dir=self.logging_validation_dir)
-        
+
         self.early_stopping = EarlyStopping(log_path=self.models_path,
                                             model_name=self.model_name)
 
@@ -154,6 +154,92 @@ class BaselineTraining:
         for p in self.optimizer.param_groups:
             return p['lr']
 
+    def train_one_epoch(self, epoch: int, progress: tqdm):
+        # Set model to training mode
+        self.model.train(mode=True)
+
+        # Prepare variables for storing training loss
+        running_loss = 0.
+
+        for i, batch in enumerate(self.train_loader):
+            # Get samples from single batch
+            spectrograms, tokens, padding_mask, token_mask = batch
+            # Move spectrograms and tokens tensors to the default device
+            spectrograms, tokens, padding_mask, token_mask = \
+                spectrograms.to(self.device), tokens.to(self.device), \
+                padding_mask.to(self.device), token_mask.to(self.device)
+
+            # Add example image (spectrogram) to TensorBoard for data-monitoring purposes
+            if i == 0:
+                self.train_writer.add_image("Spec. input", spectrograms[0], global_step=epoch + 1)
+                # Add Model-Graph to TensorBoard
+                if epoch == 0:
+                    self.train_writer.add_graph(model=self.model,
+                                                input_to_model=[batch[0].to(self.device),
+                                                                batch[2].to(self.device)],
+                                                verbose=False)
+
+            # Zero gradients for every batch
+            self.optimizer.zero_grad()
+
+            # Feed-forward pass - make predictions for current batch
+            outputs = self.model(spectrograms, padding_mask)
+
+            # Computing CTC loss and its gradients
+            loss = self.criterion(outputs, tokens, padding_mask, token_mask)
+            loss.backward()
+
+            # Gradient clipping - clip the gradient norm to given value
+            torch.nn.utils.clip_grad_norm_(self.model.parameters(), max_norm=1.0)
+
+            # Perform a single optimization step
+            self.optimizer.step()
+
+            # Update the running loss - multiply by batch_size to get sum of losses from each sample
+            running_loss += loss.detach().item() * spectrograms.size(0)
+
+            # Update TQDM progress bar with loss metric
+            progress.set_postfix(ordered_dict={"train_loss - running ": running_loss})
+
+            # Add loss for current step
+            self.train_writer.add_scalar(f'Training loss/batch', loss.detach().item(), self.total_iters)
+            self.total_iters += 1
+
+            # Update progress bar
+            progress.update(n=1)
+
+        # Save model after each checkpoint epoch
+        if epoch % self.checkpoint_epoch_num == 0:
+            self.checkpoint = {"epoch": epoch,
+                               "model_state": self.model.state_dict(),
+                               "optim_state": self.optimizer.state_dict()}
+            torch.save(self.checkpoint, os.path.join(self.models_path,
+                                                     '{}_{}.pt'.format(self.model_name, epoch)))
+        return running_loss
+
+    def validate(self):
+        # Set model to evaluation mode
+        self.model.eval()
+
+        # Prepare variables for storing validation loss
+        validation_loss = 0.
+
+        # Turn off the gradients for validation
+        with torch.no_grad():
+            for batch in self.validation_loader:
+                spectrograms, tokens, padding_mask, token_mask = batch
+                spectrograms, tokens, padding_mask, token_mask = spectrograms.to(self.device), tokens.to(self.device), \
+                    padding_mask.to(self.device), token_mask.to(self.device)
+
+                # Make predictions for current validation batch
+                outputs = self.model(spectrograms, padding_mask)
+
+                # Calculate CTC loss in validation mode
+                loss = self.criterion(outputs, tokens, padding_mask, token_mask)
+                validation_loss += loss.detach().item() * spectrograms.size(0)
+
+        return validation_loss
+
     def train(self) -> None:
         # Define variables for training
         train_losses, validation_losses = list(), list()
@@ -172,88 +258,12 @@ class BaselineTraining:
             with tqdm(total=len(self.train_loader), unit="batch") as progress:
                 progress.set_description(desc="Epoch {}, LR {}".format(epoch + 1, self._current_lr()))
 
-                # Set model to training mode
-                self.model.train(mode=True)
-
-                # Prepare variables for storing training loss
-                running_loss = 0.
-                validation_loss = 0.
-
-                for i, batch in enumerate(self.train_loader):
-                    # Get samples from single batch
-                    spectrograms, tokens, padding_mask, token_mask = batch
-                    # Move spectrograms and tokens tensors to the default device
-                    spectrograms, tokens, padding_mask, token_mask = \
-                        spectrograms.to(self.device), tokens.to(self.device), \
-                        padding_mask.to(self.device), token_mask.to(self.device)
-
-                    # Add example image (spectrogram) to TensorBoard for data-monitoring purposes
-                    if i == 0:
-                        self.train_writer.add_image("Spec. input", spectrograms[0], global_step=epoch + 1)
-                        # Add Model-Graph to TensorBoard
-                        if epoch == 0:
-                            self.train_writer.add_graph(model=self.model,
-                                                        input_to_model=[batch[0].to(self.device),
-                                                                        batch[2].to(self.device)],
-                                                        verbose=False)
-
-                    # Zero gradients for every batch
-                    self.optimizer.zero_grad()
-
-                    # Feed-forward pass - make predictions for current batch
-                    outputs = self.model(spectrograms, padding_mask)
-
-                    # Computing CTC loss and its gradients
-                    loss = self.criterion(outputs, tokens, padding_mask, token_mask)
-                    loss.backward()
-
-                    # Gradient clipping - clip the gradient norm to given value
-                    torch.nn.utils.clip_grad_norm_(self.model.parameters(), max_norm=1.0)
-
-                    # Perform a single optimization step
-                    self.optimizer.step()
-
-                    # Update the running loss - multiply by batch_size to get sum of losses from each sample
-                    running_loss += loss.detach().item() * spectrograms.size(0)
-
-                    # Update TQDM progress bar with loss metric
-                    progress.set_postfix(ordered_dict={"train_loss - running ": running_loss})
-
-                    # Add loss for current step
-                    self.train_writer.add_scalar(f'Training loss/batch', loss.detach().item(), self.total_iters)
-                    self.total_iters += 1
-
-                    # Update progress bar
-                    progress.update(n=1)
-
-                # Save model after each checkpoint epoch
-                if epoch % self.checkpoint_epoch_num == 0:
-                    self.checkpoint = {"epoch": epoch,
-                                       "model_state": self.model.state_dict(),
-                                       "optim_state": self.optimizer.state_dict()}
-                    torch.save(self.checkpoint, os.path.join(self.models_path,
-                                                             '{}_{}.pt'.format(self.model_name, epoch)))
-
-                # Set model to evaluation mode
-                self.model.eval()
-
-                # Turn off the gradients for validation
-                with torch.no_grad():
-
-                    for batch in self.validation_loader:
-                        spectrograms, tokens, padding_mask, token_mask = batch
-                        spectrograms, tokens, padding_mask, token_mask = spectrograms.to(self.device), \
-                            tokens.to(self.device), padding_mask.to(self.device), token_mask.to(self.device)
-
-                        # Make predictions for current validation batch
-                        outputs = self.model(spectrograms, padding_mask)
-
-                        # Calculate CTC loss in validation mode
-                        loss = self.criterion(outputs, tokens, padding_mask, token_mask)
-                        validation_loss += loss.detach().item() * spectrograms.size(0)
-
-                # Update both train and validation losses
+                # Train one epoch:
+                running_loss = self.train_one_epoch(epoch=epoch, progress=progress)
                 train_losses.append(running_loss / len(self.train_dataset))
+
+                # Validate:
+                validation_loss = self.validate()
                 validation_losses.append(validation_loss / len(self.validation_dataset))
 
                 # Turn on the scheduler
@@ -267,7 +277,7 @@ class BaselineTraining:
                 # Save metrics using TensorBoard - create separate scalars for training and validation
                 self.train_writer.add_scalar('Avg Loss', train_losses[-1], epoch + 1)
                 self.validation_writer.add_scalar('Avg Loss', validation_losses[-1], epoch + 1)
-               
+
                 # Call Early Stopping
                 self.early_stopping(epoch=epoch,
                                     val_loss=validation_losses[-1],

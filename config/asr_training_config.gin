@@ -4,6 +4,7 @@ import config.configurables
 DATASET_FILEPATH = "<PATH-TO-DATASET-FEATHER-FILE>"
 DATABASE_PATH = "<PATH-TO-GENERATED-SPECTROGRAMS-DIRECTORY>"
 VOCABULARY_PATH = "<PATH-TO-GENERATED-CTC-VOCABULARY>"
+DECODER_PATH = "<PATH-TO-GENERATED-INT-TO-CHAR-DICT>"
 MODEL_NAME = "<NAME-OF-ASR-MODEL>"
 RESULTS_DIR = "<PATH-TO-RESULTS>"
 LOGGING_DIR = "<PATH-TO-LOGS>"
@@ -16,6 +17,7 @@ BaselineTraining.random_seed = None
 BaselineTraining.dataset_filepath = %DATASET_FILEPATH
 BaselineTraining.database_path = %DATABASE_PATH
 BaselineTraining.vocabulary_path = %VOCABULARY_PATH
+BaselineTraining.int_to_char_decoder_path = %DECODER_PATH
 BaselineTraining.validation_split = 0.2
 BaselineTraining.subset_random_state = None
 BaselineTraining.subset_shuffle = True
