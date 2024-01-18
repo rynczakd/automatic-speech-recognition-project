@@ -8,6 +8,8 @@ import numpy as np
 import collections
 import torch
 from typing import List
+from utils.modelUtils import mask_to_lengths
+from utils.modelUtils import get_conv_output_widths
 
 
 class CtcBeamSearch:
@@ -17,8 +19,8 @@ class CtcBeamSearch:
 
         self.NEG_INF = -float("inf")
 
-    def __call__(self, batch: torch.Tensor) -> List[tuple]:
-        return self.decode_batch(probs_batch=batch)
+    def __call__(self, batch: torch.Tensor, specs_mask: torch.Tensor) -> List[tuple]:
+        return self.decode_batch(probs_batch=batch, specs_mask=specs_mask)
 
     def make_new_beam(self) -> collections.defaultdict:
         def initialize_beam() -> tuple:
@@ -113,16 +115,22 @@ class CtcBeamSearch:
         # Return the output label sequence and the corresponding negative log-likelihood estimated by the decoder
         return best[0], -self.logsumexp(*best[1])
 
-    def decode_batch(self, probs_batch: torch.Tensor):
+    def decode_batch(self, probs_batch: torch.Tensor, specs_mask: torch.Tensor) -> List[tuple]:
         # Calculate LogSoftmax for CTC Beam Search function
         probs_batch = probs_batch.log_softmax(dim=-1)
+        probs_batch = probs_batch.detach().numpy()
+
+        # Calculate features dimensions for decoding without padding
+        specs_lengths = mask_to_lengths(mask=specs_mask)
+        probs_lengths = get_conv_output_widths(input_widths=specs_lengths)
+        probs_lengths = probs_lengths.type(torch.int32)
 
         # Prepare empty list for decodes (indexes, log-likelihood)
         decoded_batch = []
 
-        # Iterate over predictions in batch
-        for probs in probs_batch:
-            decoded = self.decode(probs=probs, calculate_log=False)
+        # Iterate over predictions in batch (without padding)
+        for probs, length in zip(probs_batch, probs_lengths):
+            decoded = self.decode(probs=probs[:length], calculate_log=False)
             decoded_batch.append(decoded)
 
         return decoded_batch  # List of tuples with length equal to batch size
