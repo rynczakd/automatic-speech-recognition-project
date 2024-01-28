@@ -173,5 +173,5 @@ class SpeechRecognition(nn.Module):
         # Feed-forward GRU hidden states into CTC decoder
         x = self.ctc_encoder(x)
 
-        return x
+        return x, feature_lengths
     

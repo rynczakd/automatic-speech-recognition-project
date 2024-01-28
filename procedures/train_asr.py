@@ -10,12 +10,14 @@ from dataset.spectrogramDataset import SpectrogramDataset
 from model.ctc_wrapper import CTCLoss
 from utils.trainingUtils import load_and_split_dataset
 from utils.trainingUtils import load_vocabulary
-from utils.trainingUtils import load_decoder
 from utils.trainingUtils import set_seed
+from utils.modelUtils import token_mask_to_lengths
 from tqdm import tqdm
 from torch.utils.tensorboard import SummaryWriter
 from procedures.early_stopping import EarlyStopping
-
+from procedures.validation import Decoder
+from torchmetrics.text import WordErrorRate
+from torchmetrics.text import CharErrorRate
 
 gin.external_configurable(torch.optim.AdamW, module='torch.optim')
 gin.external_configurable(torch.optim.lr_scheduler.ReduceLROnPlateau, module='torch.optim.lr_scheduler')
@@ -90,8 +92,12 @@ class BaselineTraining:
         self.models_path = os.path.join(results_dir, 'models', self.model_name)
         os.makedirs(self.models_path, exist_ok=True)
 
-        # VALIDATION METRICS
-        self.int_to_char_decoder = load_decoder(decoder_dir=int_to_char_decoder_path)
+        # VALIDATION
+        self.decoder = Decoder(int_to_char_decoder_path=int_to_char_decoder_path,
+                               beam_size=50,
+                               blank_idx=0)
+        self.wer = WordErrorRate()
+        self.cer = CharErrorRate()
 
         # LOGGING
 
@@ -183,10 +189,13 @@ class BaselineTraining:
             self.optimizer.zero_grad()
 
             # Feed-forward pass - make predictions for current batch
-            outputs = self.model(spectrograms, padding_mask)
+            outputs, output_lengths = self.model(spectrograms, padding_mask)
+
+            # Calculate target lengths without padding
+            target_lengths = token_mask_to_lengths(token_mask=token_mask)
 
             # Computing CTC loss and its gradients
-            loss = self.criterion(outputs, tokens, padding_mask, token_mask)
+            loss = self.criterion(outputs, tokens, output_lengths, target_lengths)
             loss.backward()
 
             # Gradient clipping - clip the gradient norm to given value
@@ -223,6 +232,9 @@ class BaselineTraining:
 
         # Prepare variables for storing validation loss
         validation_loss = 0.
+        running_wer = 0.
+        running_cer = 0.
+        log_sum_exp = 0.
 
         # Turn off the gradients for validation
         with torch.no_grad():
@@ -232,17 +244,32 @@ class BaselineTraining:
                     padding_mask.to(self.device), token_mask.to(self.device)
 
                 # Make predictions for current validation batch
-                outputs = self.model(spectrograms, padding_mask)
+                outputs, output_lengths = self.model(spectrograms, padding_mask)
+
+                # Calculate target lengths without padding
+                target_lengths = token_mask_to_lengths(token_mask=token_mask.detach())
+
+                # Decode predictions and targets
+                decoded_preds, decoded_targets = self.decoder(preds=outputs,
+                                                              preds_lengths=output_lengths,
+                                                              targets=tokens,
+                                                              target_lengths=target_lengths)
+
+                for i in range(outputs.shape[0]):
+                    running_wer += self.wer(decoded_preds[i][0], decoded_targets[i])
+                    running_cer += self.cer()
+                    log_sum_exp += decoded_preds[i][1]
 
                 # Calculate CTC loss in validation mode
-                loss = self.criterion(outputs, tokens, padding_mask, token_mask)
+                loss = self.criterion(outputs, tokens, output_lengths, target_lengths)
                 validation_loss += loss.detach().item() * spectrograms.size(0)
 
-        return validation_loss
+        return validation_loss, running_wer, running_cer, log_sum_exp
 
     def train(self) -> None:
         # Define variables for training
         train_losses, validation_losses = list(), list()
+        validation_wer, validation_cer, mean_log_sum_exp = list(), list(), list()
 
         # Main training loop
         for epoch in range(self.num_epochs):
@@ -263,8 +290,12 @@ class BaselineTraining:
                 train_losses.append(running_loss / len(self.train_dataset))
 
                 # Validate:
-                validation_loss = self.validate()
+                validation_loss, wer, cer, log_sum_exp = self.validate()
+
                 validation_losses.append(validation_loss / len(self.validation_dataset))
+                validation_wer.append(wer / len(self.validation_dataset))
+                validation_cer.append(cer / len(self.validation_dataset))
+                mean_log_sum_exp.append(log_sum_exp / len(self.validation_dataset))
 
                 # Turn on the scheduler
                 if isinstance(self.scheduler, torch.optim.lr_scheduler.ReduceLROnPlateau):
@@ -276,7 +307,11 @@ class BaselineTraining:
 
                 # Save metrics using TensorBoard - create separate scalars for training and validation
                 self.train_writer.add_scalar('Avg Loss', train_losses[-1], epoch + 1)
+
                 self.validation_writer.add_scalar('Avg Loss', validation_losses[-1], epoch + 1)
+                self.validation_writer.add_scalar('Avg WER', validation_wer[-1], epoch + 1)
+                self.validation_writer.add_scalar('Avg CER', validation_cer[-1], epoch + 1)
+                self.validation_writer.add_scalar('Mean Log-Sum-Exp', mean_log_sum_exp[-1], epoch + 1)
 
                 # Call Early Stopping
                 self.early_stopping(epoch=epoch,

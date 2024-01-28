@@ -2,9 +2,6 @@ import gin
 import torch
 from torch import nn
 import torch.nn.functional as F
-from utils.modelUtils import mask_to_lengths
-from utils.modelUtils import get_conv_output_widths
-from utils.modelUtils import token_mask_to_lengths
 
 
 @gin.configurable
@@ -18,8 +15,8 @@ class CTCLoss(nn.Module):
     def forward(self,
                 predictions: torch.Tensor,
                 targets: torch.Tensor,
-                predictions_mask: torch.Tensor,
-                targets_mask: torch.Tensor) -> torch.Tensor:
+                predictions_lengths: torch.Tensor,
+                target_lengths: torch.Tensor) -> torch.Tensor:
 
         # Calculate LogSoftmax for CTC Loss function
         predictions = predictions.log_softmax(dim=-1)
@@ -28,15 +25,12 @@ class CTCLoss(nn.Module):
         batch, seq_length, classes = predictions.shape
         predictions = predictions.permute(1, 0, 2)  # (seq_length, batch, num_classes)
 
-        if self.pack_predictions:
+        if self.pack_predictions and predictions_lengths is None:
             predictions_lengths = torch.full(size=(batch, ), fill_value=seq_length, dtype=torch.int32)
 
         else:
-            spectrograms_lengths = mask_to_lengths(mask=predictions_mask)
-            features_lengths = get_conv_output_widths(input_widths=spectrograms_lengths)
-            predictions_lengths = features_lengths.type(torch.int32)
+            predictions_lengths = predictions_lengths.type(torch.int32)
 
-        target_lengths = token_mask_to_lengths(targets_mask)
         target_lengths = target_lengths.type(torch.int32)
 
         return F.ctc_loss(log_probs=predictions,
