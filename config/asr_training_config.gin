@@ -17,11 +17,10 @@ BaselineTraining.random_seed = None
 BaselineTraining.dataset_filepath = %DATASET_FILEPATH
 BaselineTraining.database_path = %DATABASE_PATH
 BaselineTraining.vocabulary_path = %VOCABULARY_PATH
-BaselineTraining.int_to_char_decoder_path = %DECODER_PATH
 BaselineTraining.validation_split = 0.2
 BaselineTraining.subset_random_state = None
 BaselineTraining.subset_shuffle = True
-BaselineTraining.batch_size = 8
+BaselineTraining.batch_size = 16
 BaselineTraining.optimizer = @AdamW
 BaselineTraining.scheduler = @CosineAnnealingWarmRestarts  # @ReduceLROnPlateau
 
@@ -78,8 +77,13 @@ _create_classifier.classifier_dropout = 0.1
 BaselineTraining.model_name = %MODEL_NAME
 
 # ====== ASR TRAINING - TRAINING LOOP ======
-BaselineTraining.num_epochs = 80
+BaselineTraining.num_epochs = 150
 BaselineTraining.checkpoint_epoch_num = 10
+
+# ====== ASR TRAINING - VALIDATION DECODER =====
+Decoder.int_to_char_decoder_path = %DECODER_PATH
+Decoder.beam_size = 50
+Decoder.blank_idx = 0
 
 # ====== CTC LOSS WRAPPER AND OPTIMIZER ======
 CTCLoss.blank = 0
@@ -96,7 +100,7 @@ ReduceLROnPlateau.factor = 0.1
 ReduceLROnPlateau.patience = 5
 ReduceLROnPlateau.verbose = True
 
-CosineAnnealingWarmRestarts.T_0 = 5
+CosineAnnealingWarmRestarts.T_0 = 10
 CosineAnnealingWarmRestarts.verbose = True
 
 # ====== EARLY STOPPING ======

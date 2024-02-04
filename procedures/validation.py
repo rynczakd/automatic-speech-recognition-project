@@ -1,3 +1,4 @@
+import gin
 import torch
 from typing import List
 from typing import Tuple
@@ -6,6 +7,7 @@ from procedures.ctc_beam_search import CtcBeamSearch
 from utils.trainingUtils import load_decoder
 
 
+@gin.configurable
 class Decoder:
     def __init__(self,
                  int_to_char_decoder_path,

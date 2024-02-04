@@ -32,7 +32,6 @@ class BaselineTraining:
                  dataset_filepath: str,  # DATASET/DATALOADER PART
                  database_path: str,
                  vocabulary_path: str,
-                 int_to_char_decoder_path: str,
                  validation_split: int,
                  subset_random_state: Any,
                  subset_shuffle: bool,
@@ -93,9 +92,7 @@ class BaselineTraining:
         os.makedirs(self.models_path, exist_ok=True)
 
         # VALIDATION
-        self.decoder = Decoder(int_to_char_decoder_path=int_to_char_decoder_path,
-                               beam_size=50,
-                               blank_idx=0)
+        self.decoder = Decoder()
         self.wer = WordErrorRate()
         self.cer = CharErrorRate()
 
@@ -257,7 +254,7 @@ class BaselineTraining:
 
                 for i in range(outputs.shape[0]):
                     running_wer += self.wer(decoded_preds[i][0], decoded_targets[i])
-                    running_cer += self.cer()
+                    running_cer += self.cer(decoded_preds[i][0], decoded_targets[i])
                     log_sum_exp += decoded_preds[i][1]
 
                 # Calculate CTC loss in validation mode
@@ -268,8 +265,8 @@ class BaselineTraining:
 
     def train(self) -> None:
         # Define variables for training
-        train_losses, validation_losses = list(), list()
-        validation_wer, validation_cer, mean_log_sum_exp = list(), list(), list()
+        train_losses, validation_losses = [], []
+        validation_wer, validation_cer, mean_log_sum_exp = [], [], []
 
         # Main training loop
         for epoch in range(self.num_epochs):

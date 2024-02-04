@@ -25,7 +25,7 @@ class CTCLoss(nn.Module):
         batch, seq_length, classes = predictions.shape
         predictions = predictions.permute(1, 0, 2)  # (seq_length, batch, num_classes)
 
-        if self.pack_predictions and predictions_lengths is None:
+        if self.pack_predictions or predictions_lengths is None:
             predictions_lengths = torch.full(size=(batch, ), fill_value=seq_length, dtype=torch.int32)
 
         else:
