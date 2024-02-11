@@ -15,7 +15,7 @@ from utils.modelUtils import token_mask_to_lengths
 from tqdm import tqdm
 from torch.utils.tensorboard import SummaryWriter
 from procedures.early_stopping import EarlyStopping
-from procedures.validation import Decoder
+from procedures.ctc_greedy_search import CtcGreedyDecoder
 from torchmetrics.text import WordErrorRate
 from torchmetrics.text import CharErrorRate
 
@@ -92,7 +92,7 @@ class BaselineTraining:
         os.makedirs(self.models_path, exist_ok=True)
 
         # VALIDATION
-        self.decoder = Decoder()
+        self.decoder = CtcGreedyDecoder()
         self.wer = WordErrorRate()
         self.cer = CharErrorRate()
 
@@ -231,7 +231,6 @@ class BaselineTraining:
         validation_loss = 0.
         running_wer = 0.
         running_cer = 0.
-        log_sum_exp = 0.
 
         # Turn off the gradients for validation
         with torch.no_grad():
@@ -247,26 +246,25 @@ class BaselineTraining:
                 target_lengths = token_mask_to_lengths(token_mask=token_mask.detach())
 
                 # Decode predictions and targets
-                decoded_preds, decoded_targets = self.decoder(preds=outputs,
-                                                              preds_lengths=output_lengths,
-                                                              targets=tokens,
-                                                              target_lengths=target_lengths)
+                decoded_preds, decoded_targets = self.decoder.decode(output=outputs,
+                                                                     output_lengths=output_lengths,
+                                                                     labels=tokens,
+                                                                     label_lengths=target_lengths)
 
                 for i in range(outputs.shape[0]):
                     running_wer += self.wer(decoded_preds[i][0], decoded_targets[i])
                     running_cer += self.cer(decoded_preds[i][0], decoded_targets[i])
-                    log_sum_exp += decoded_preds[i][1]
 
                 # Calculate CTC loss in validation mode
                 loss = self.criterion(outputs, tokens, output_lengths, target_lengths)
                 validation_loss += loss.detach().item() * spectrograms.size(0)
 
-        return validation_loss, running_wer, running_cer, log_sum_exp
+        return validation_loss, running_wer, running_cer
 
     def train(self) -> None:
         # Define variables for training
         train_losses, validation_losses = [], []
-        validation_wer, validation_cer, mean_log_sum_exp = [], [], []
+        validation_wer, validation_cer = [], []
 
         # Main training loop
         for epoch in range(self.num_epochs):
@@ -287,12 +285,11 @@ class BaselineTraining:
                 train_losses.append(running_loss / len(self.train_dataset))
 
                 # Validate:
-                validation_loss, wer, cer, log_sum_exp = self.validate()
+                validation_loss, wer, cer = self.validate()
 
                 validation_losses.append(validation_loss / len(self.validation_dataset))
                 validation_wer.append(wer / len(self.validation_dataset))
                 validation_cer.append(cer / len(self.validation_dataset))
-                mean_log_sum_exp.append(log_sum_exp / len(self.validation_dataset))
 
                 # Turn on the scheduler
                 if isinstance(self.scheduler, torch.optim.lr_scheduler.ReduceLROnPlateau):
@@ -308,7 +305,6 @@ class BaselineTraining:
                 self.validation_writer.add_scalar('Avg Loss', validation_losses[-1], epoch + 1)
                 self.validation_writer.add_scalar('Avg WER', validation_wer[-1], epoch + 1)
                 self.validation_writer.add_scalar('Avg CER', validation_cer[-1], epoch + 1)
-                self.validation_writer.add_scalar('Mean Log-Sum-Exp', mean_log_sum_exp[-1], epoch + 1)
 
                 # Call Early Stopping
                 self.early_stopping(epoch=epoch,

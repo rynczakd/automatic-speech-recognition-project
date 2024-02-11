@@ -81,9 +81,9 @@ BaselineTraining.num_epochs = 150
 BaselineTraining.checkpoint_epoch_num = 10
 
 # ====== ASR TRAINING - VALIDATION DECODER =====
-Decoder.int_to_char_decoder_path = %DECODER_PATH
-Decoder.beam_size = 50
-Decoder.blank_idx = 0
+CtcGreedyDecoder.int_to_char_decoder_path = %DECODER_PATH
+CtcGreedyDecoder.blank_label = 0
+CtcGreedyDecoder.collapse_repeated = True
 
 # ====== CTC LOSS WRAPPER AND OPTIMIZER ======
 CTCLoss.blank = 0
