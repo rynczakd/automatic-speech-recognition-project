@@ -1,6 +1,7 @@
 import os
 import gin
 import string
+from typing import Tuple, Dict
 
 
 class CtcTokenizer:
@@ -8,7 +9,7 @@ class CtcTokenizer:
         self.root_dir = root_dir
 
     @gin.configurable
-    def prepare_vocabulary(self, remove_punctuation: bool = False) -> (dict, dict):
+    def prepare_vocabulary(self, remove_punctuation: bool = False) -> Tuple[Dict, Dict]:
         # Prepare empty list for .trans.txt files
         text_files = list()
         for sub_dir, _, files in os.walk(self.root_dir):
@@ -54,6 +55,6 @@ class CtcTokenizer:
 
     @staticmethod
     def decoder(idx_to_text: dict, labels: list) -> str:
-        decodes = [idx_to_text[label] for label in labels]
+        decodes = [idx_to_text[label.item()] for label in labels]
         return ''.join(decodes)
     
