@@ -12,7 +12,7 @@ from utils.trainingUtils import load_and_split_dataset
 from utils.trainingUtils import load_vocabulary
 from utils.trainingUtils import set_seed
 from utils.modelUtils import token_mask_to_lengths
-from tqdm import tqdm
+from tqdm.auto import tqdm
 from torch.utils.tensorboard import SummaryWriter
 from procedures.early_stopping import EarlyStopping
 from procedures.ctc_greedy_search import CtcGreedyDecoder
@@ -205,7 +205,7 @@ class BaselineTraining:
             running_loss += loss.detach().item() * spectrograms.size(0)
 
             # Update TQDM progress bar with loss metric
-            progress.set_postfix(ordered_dict={"train_loss - running ": running_loss})
+            progress.set_postfix(ordered_dict={"train_loss - batch ": loss.detach().item()})
 
             # Add loss for current step
             self.train_writer.add_scalar(f'Training loss/batch', loss.detach().item(), self.total_iters)
@@ -252,8 +252,8 @@ class BaselineTraining:
                                                                      label_lengths=target_lengths)
 
                 for i in range(outputs.shape[0]):
-                    running_wer += self.wer(decoded_preds[i][0], decoded_targets[i])
-                    running_cer += self.cer(decoded_preds[i][0], decoded_targets[i])
+                    running_wer += self.wer(decoded_preds[i], decoded_targets[i]).detach().item()
+                    running_cer += self.cer(decoded_preds[i], decoded_targets[i]).detach().item()
 
                 # Calculate CTC loss in validation mode
                 loss = self.criterion(outputs, tokens, output_lengths, target_lengths)
@@ -316,7 +316,9 @@ class BaselineTraining:
                     break
 
                 # Update TQDM progress bar with per-epoch train and validation loss
-                progress.set_postfix({"train_loss ": train_losses[-1], "val_loss ": validation_losses[-1]})
+                progress.set_postfix({"train_loss ": train_losses[-1],
+                                      "val_loss ": validation_losses[-1],
+                                      "val_wer": validation_wer[-1]})
 
         # Close SummaryWriter after training
         self.train_writer.close()
