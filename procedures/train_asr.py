@@ -63,12 +63,14 @@ class BaselineTraining:
         self.train_loader = DataLoader(dataset=self.train_dataset,
                                        batch_size=batch_size,
                                        collate_fn=SpectrogramDataset.spectrogram_collate,
-                                       shuffle=True)
+                                       shuffle=True,
+                                       drop_last=True)
 
         self.validation_loader = DataLoader(dataset=self.validation_dataset,
                                             batch_size=batch_size,
                                             collate_fn=SpectrogramDataset.spectrogram_collate,
-                                            shuffle=False)
+                                            shuffle=False,
+                                            drop_last=False)
 
         # MODEL
         self.model = model().to(self.device)
@@ -202,13 +204,13 @@ class BaselineTraining:
             self.optimizer.step()
 
             # Update the running loss - multiply by batch_size to get sum of losses from each sample
-            running_loss += loss.detach().item() * spectrograms.size(0)
+            running_loss += loss.item()
 
             # Update TQDM progress bar with loss metric
-            progress.set_postfix(ordered_dict={"train_loss - batch ": loss.detach().item()})
+            progress.set_postfix(ordered_dict={"train_loss - batch ": loss.item()})
 
             # Add loss for current step
-            self.train_writer.add_scalar(f'Training loss/batch', loss.detach().item(), self.total_iters)
+            self.train_writer.add_scalar(f'Training loss/batch', loss.item(), self.total_iters)
             self.total_iters += 1
 
             # Update progress bar
@@ -252,8 +254,8 @@ class BaselineTraining:
                                                                      label_lengths=target_lengths)
 
                 for i in range(outputs.shape[0]):
-                    running_wer += self.wer(decoded_preds[i], decoded_targets[i]).detach().item()
-                    running_cer += self.cer(decoded_preds[i], decoded_targets[i]).detach().item()
+                    running_wer += self.wer(decoded_preds[i], decoded_targets[i]).item()
+                    running_cer += self.cer(decoded_preds[i], decoded_targets[i]).item()
 
                 # Calculate CTC loss in validation mode
                 loss = self.criterion(outputs, tokens, output_lengths, target_lengths)
@@ -282,7 +284,7 @@ class BaselineTraining:
 
                 # Train one epoch:
                 running_loss = self.train_one_epoch(epoch=epoch, progress=progress)
-                train_losses.append(running_loss / len(self.train_dataset))
+                train_losses.append(running_loss / len(self.train_loader))
 
                 # Validate:
                 validation_loss, wer, cer = self.validate()

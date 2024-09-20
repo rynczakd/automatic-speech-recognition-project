@@ -144,11 +144,12 @@ class SpeechRecognition(nn.Module):
         return h0
 
     def forward(self, input_data: torch.Tensor, padding_mask: torch.Tensor) -> (torch.Tensor, torch.Tensor):
-        # Compute spectrograms lengths without padding
-        spectrograms_lengths = mask_to_lengths(mask=padding_mask)
+        with torch.no_grad():
+            # Compute spectrograms lengths without padding
+            spectrograms_lengths = mask_to_lengths(mask=padding_mask)
 
-        # Calculate feature lengths after FeatureExtractor for spectrograms without padding
-        feature_lengths = get_conv_output_widths(input_widths=spectrograms_lengths)
+            # Calculate feature lengths after FeatureExtractor for spectrograms without padding
+            feature_lengths = get_conv_output_widths(input_widths=spectrograms_lengths)
 
         # Feed-forward input data through FeatureExtractor
         x = self.feature_extractor(input_data)
